@@ -46,6 +46,14 @@ Tutte le 12 applicazioni scritte in Rust espongono nativamente un server **Model
 
 ---
 
+## 📋 Documentazione Operativa & Roadmap
+
+- 📑 [**`docs/OPERATIONAL_PLAN.md`**](./docs/OPERATIONAL_PLAN.md) — Piano operativo dettagliato con parametri di sistema, comandi Proxmox, display headless e setup Sunshine.
+- 🎯 [**`docs/ROADMAP.md`**](./docs/ROADMAP.md) — Tracking board di avanzamento con stato milestone, checklist di lavoro e grafo delle dipendenze.
+- 📖 [**`STREAMING_ARCHITECTURE.md`**](./STREAMING_ARCHITECTURE.md) — Architettura tecnica approfondita su NVENC, WebCodecs e WebRTC.
+
+---
+
 ## 📂 Struttura della Directory
 
 ```
