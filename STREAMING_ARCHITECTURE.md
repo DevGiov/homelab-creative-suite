@@ -104,18 +104,43 @@ Ogni applicazione della suite (WordCraft, DeckCraft, PhotoCraft, CADCraft, ecc.)
 | **CADCraft**   | `cadcraft --control 7982`   | `7982` | Disegno tecnico, snap, layer, quote |
 | **SoundCraft** | `soundcraft --control 7801` | `7801` | Tracce, volumi, effetti, transport control |
 
-### 3.2 Il Ponte MCP verso `homelab-agent`
-Quando `homelab-agent` (in esecuzione su CT 125) riceve un comando dell'utente come:
-> *"Aggiungi una nuova slide a due colonne, imposta il titolo 'Stato Servizi Homelab' e inserisci una tabella con i container attivi."*
+### 3.2 L'Architettura MetaMCP-First: Hub Centralizzato e Universale
 
-L'agente esegue il tool tramite il binario CLI in modalità bridge:
-```bash
-deckcraft-cli mcp --connect 192.168.1.187:7979
+Invece di accoppiare gli strumenti MCP direttamente ed esclusivamente dentro `homelab-agent`, l'architettura adotta **MetaMCP (CT 107)** come hub centrale per l'intero homelab:
+
+```text
+┌────────────────────────────────────────────────────────┐
+│ CT 144: creative-workstation                           │
+│  - Applicazioni GUI (DeckCraft, PhotoCraft, ecc.)       │
+│  - Creative Suite MCP Bridge (SSE/HTTP su porta 7900)  │
+└──────────────────────────┬─────────────────────────────┘
+                           │ SSE / JSON-RPC
+                           ▼
+┌────────────────────────────────────────────────────────┐
+│ CT 107: MetaMCP Gateway (192.168.1.175:12008)           │
+│  - Upstream registrato: "creative-suite"               │
+│  - Espone strumenti unificati: creative-suite__*       │
+└──────────┬──────────────────┬──────────────────────────┘
+           │                  │
+           ▼                  ▼
+┌─────────────────────────┐  ┌─────────────────────────────────────────┐
+│ Client Esterni          │  │ CT 125: homelab-agent (Dev Stack)       │
+│ - Antigravity IDE (dev) │  │  - Auto-discovery via MetaMCPClient      │
+│ - Claude Code / Cursor  │  │  - Ottimizzazioni specifiche:            │
+│ - Script e automazioni  │  │    * Rollback Transazionale (Saga LIFO)  │
+│                         │  │    * Grounding Visivo multimodale        │
+│                         │  │    * Sincronizzazione Live Co-Authoring  │
+└─────────────────────────┘  └─────────────────────────────────────────┘
 ```
-1. Il CLI invia il payload strutturato alla porta `7979` della sessione desktop.
-2. L'applicazione applica la modifica nel suo motore e aggiorna la GUI.
-3. **Sunshine cattura il frame aggiornato e lo trasmette in tempo reale a 60 FPS al browser dell'utente**.
-4. L'utente osserva l'agente manipolare gli elementi a video, potendo poi prendere il mouse e rifinire manualmente il lavoro senza interruzioni.
+
+#### Flusso Operativo del Live Co-Authoring:
+1. **Invio Comando**: L'utente chiede in chat a `homelab-agent` (o ad Antigravity):
+   > *"Aggiungi una nuova slide a due colonne, imposta il titolo 'Stato Servizi Homelab' e inserisci una tabella con i container attivi."*
+2. **Esecuzione Tool tramite MetaMCP**: L'agente invoca il tool `creative-suite__deckcraft_add_slide` attraverso MetaMCP.
+3. **Bridge ed IPC**: Il bridge su CT 144 inoltra la richiesta sulla porta IPC loopback locale `7979` di DeckCraft.
+4. **Rendering e Streaming**: DeckCraft renderizza istantaneamente la slide nel motore grafico GUI su Xorg `:0`.
+5. **Feed Video a 60 FPS**: Sunshine cattura il frame aggiornato e Moonlight-Web-Stream lo proietta nel browser dell'utente a bassissima latenza. L'utente vede comparire la slide in tempo reale mentre osserva lo schermo.
+6. **Grounding e Rollback**: Se l'utente chiede un annullamento (*"Annulla l'ultima modifica"*), `homelab-agent` attiva il rollback dichiarativo (Saga LIFO) registrato nel suo catalogo.
 
 ---
 

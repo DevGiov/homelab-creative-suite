@@ -151,12 +151,20 @@ Questo documento definisce in dettaglio tutte le specifiche tecniche, i comandi 
 
 ---
 
-### Fase 5: Integrazione Live Co-Authoring con `homelab-agent` (CT 125)
-1. **Riconoscimento delle Porte di Controllo**:
-   - `homelab-agent` su CT 125 include i client MCP remoti puntati su `192.168.1.187:<port>`.
-2. **Mappatura Schemi Declarativi in `tool_catalog.py`**:
-   - Aggiornamento del catalogo tool con supporto a `deckcraft-cli`, `wordcraft-cli`, `photocraft-cli` in modalità bridge.
-   - Definizione del pattern di rollback transazionale (Saga LIFO) per cancellazione o annullamento azioni grafiche/documentali.
-3. **Validazione E2E in Tempo Reale**:
+### Fase 5: Registrazione MetaMCP (CT 107) & Live Co-Authoring con `homelab-agent` (CT 125)
+1. **Creative Suite MCP Bridge (CT 144)**:
+   - Configurazione di un server MCP unificato (SSE/HTTP su porta `7900`) che espone i comandi IPC delle applicazioni creative (`deckcraft`, `wordcraft`, `photocraft`, `vectorcraft`, `cadcraft`, `soundcraft`).
+2. **Registrazione Upstream su MetaMCP (CT 107 - `192.168.1.175:12008`)**:
+   - Registrazione dell'endpoint `http://192.168.1.187:7900/sse` nel gateway MetaMCP come server `creative-suite`.
+   - **Vantaggio Architetturale Chiave**: Gli strumenti diventano immediatamente disponibili con prefisso `creative-suite__*` su tutti i client connessi a MetaMCP:
+     - Antigravity IDE (sulla workstation dev)
+     - Claude Code, Cursor, Copilot o script di automazione
+     - `homelab-agent` (CT 125) via auto-discovery dinamica di `MetaMCPClient`.
+3. **Ottimizzazioni Specifiche in `homelab-agent` (CT 125)**:
+   - **Rollback Transazionale (Saga LIFO)** in `tool_catalog.py`: mappatura delle azioni inverse di undo (es. cancellazione di una shape/slide creata erroneamente).
+   - **Mode Policy & Permessi**: autorizzazione dei tool nel registry `metamcp` o profilo `creative`.
+   - **Grounding Visivo e Sincronizzazione Streaming**: cattura di screenshot dal frame buffer/Sunshine per analisi multimodale e verifica visiva in tempo reale prima di confermare all'utente in chat.
+4. **Validazione E2E in Tempo Reale**:
    - Connessione utente via browser su `https://creative.deggio.local`.
-   - Invio comandi in chat a `homelab-agent` e visualizzazione del rendering dinamico a 60 FPS direttamente sullo schermo streamed.
+   - Invio comandi in chat ad un agente (es. `homelab-agent` o Antigravity) per manipolare un asset grafico o documento.
+   - Visualizzazione del rendering dinamico a 60 FPS direttamente sullo schermo streamed.

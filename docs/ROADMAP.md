@@ -111,21 +111,23 @@ flowchart TD
 
 ---
 
-### Phase 5: Orchestrazione Suite Creativa & Live Co-Authoring con `homelab-agent` (PIANIFICATO ⏳)
-* **Obiettivo:** Avviare i programmi con canali di controllo attivi e collegare `homelab-agent` per la collaborazione in tempo reale.
+### Phase 5: Registrazione MetaMCP (CT 107) & Live Co-Authoring con `homelab-agent` (PIANIFICATO ⏳)
+* **Obiettivo:** Esporre gli strumenti di controllo della Suite Creativa tramite **MetaMCP** (`CT 107`) come hub centralizzato per renderli universalmente disponibili (Antigravity, Claude, script esterni e `homelab-agent`), integrando poi in `homelab-agent` le ottimizzazioni specifiche (rollback dichiarativo, visual grounding e sincronizzazione streaming).
 * **Deliverable e Checklist:**
-  - [ ] **Installazione Binari della Suite**: Compilare e copiare i binari della suite in `/opt/creative-suite/bin`.
-  - [ ] **Script di Avvio Sessione**: Creare `/opt/creative-suite/scripts/start-session.sh` con porte IPC dedicate:
-    - `deckcraft --control 7979`
-    - `wordcraft --control 7981`
-    - `photocraft --control 7878`
-    - `vectorcraft --control 7980`
-    - `cadcraft --control 7982`
-    - `soundcraft --control 7801`
-  - [ ] **Integrazione `homelab-agent` (CT 125)**:
-    - Mappare i comandi dei client MCP verso le porte di CT 144.
-    - Aggiornare `tool_catalog.py` con schemi dichiarativi di rollback.
+  - [ ] **Installazione Binari & Demoni di Controllo (CT 144)**:
+    - Compilare/copiare i binari della suite in `/opt/creative-suite/bin`.
+    - Creare `/opt/creative-suite/scripts/start-session.sh` con canali IPC attivi (`deckcraft --control 7979`, `wordcraft --control 7981`, `photocraft --control 7878`, ecc.).
+  - [ ] **Creative Suite MCP Bridge Server (CT 144)**:
+    - Configurare il server/bridge MCP unificato (es. SSE o Streamable HTTP su porta `7900`) che mappa i comandi di controllo delle app.
+  - [ ] **Registrazione Upstream su MetaMCP (CT 107)**:
+    - Registrare l'endpoint `http://192.168.1.187:7900/sse` in MetaMCP come upstream `creative-suite`.
+    - Verificare la discovery immediata dei tool su Antigravity IDE e client MCP esterni con prefisso `creative-suite__*`.
+  - [ ] **Discovery Dinamica & Ottimizzazioni Specifiche in `homelab-agent` (CT 125)**:
+    - Verificare l'auto-discovery dinamica dei tool tramite `MetaMCPClient` (zero-code injection).
+    - Definire in `tool_catalog.py` gli schemi dichiarativi di **Rollback Transazionale (Saga LIFO)** per le operazioni creative (es. undo shape/slide/layer).
+    - Aggiornare `backend/mode_policy.py` per autorizzare i tool creative nei profili appropriati.
+    - Implementare il **Visual Grounding** per catturare snapshot dal frame buffer/Sunshine per il feedback visivo all'utente.
   - [ ] **Test E2E Co-Authoring Live**:
     - Aprire la sessione di streaming nel browser su `https://creative.deggio.local`.
-    - Chiedere a `homelab-agent` in chat di manipolare una presentazione o documento.
-    - Verificare l'aggiornamento visivo a video a 60 FPS in tempo reale.
+    - Inviare un comando a `homelab-agent` (o ad Antigravity) per manipolare una slide o un'immagine.
+    - Verificare l'aggiornamento grafico immediato a video a 60 FPS in tempo reale.
