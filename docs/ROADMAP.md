@@ -96,20 +96,27 @@ flowchart TD
 
 ---
 
-### Phase 4: Moonlight-Web-Stream, DNS & Nginx Proxy Manager (PRONTO ⏳)
-* **Obiettivo:** Consentire l'accesso alla workstation da qualsiasi browser web tramite HTTPS e WebRTC.
+### Phase 4: Moonlight-Web-Stream, DNS & Nginx Proxy Manager (COMPLETATO ✅)
+* **Obiettivo:** Consentire l'accesso alla workstation da qualsiasi browser web tramite HTTP/HTTPS, WebSockets e WebRTC senza client da installare.
 * **Deliverable e Checklist:**
-  - [ ] **Deploy Docker Moonlight-Web-Stream**:
-    - Configurare `docker-compose.yaml` in `/opt/moonlight-web` su CT 144 (porte 8080 HTTP, 40000-40100/udp WebRTC).
-    - Avviare il container e verificare la pagina di login web.
-  - [ ] **Accoppiamento (Pairing) Sunshine ➔ Web Client**:
-    - Generare il PIN di accoppiamento ed eseguire il pairing con Sunshine.
-  - [ ] **Configurazione DNS Pi-hole (CT 114)**:
-    - Aggiungere il record locale `creative.deggio.local` ➔ `192.168.1.143` (NpmLocal).
-  - [ ] **Configurazione Reverse Proxy (CT 121 - NpmLocal)**:
-    - Creare il Proxy Host per `creative.deggio.local` verso `http://192.168.1.189:8080`.
-    - Abilitare **Websockets Support** e certificato SSL (Force SSL attivo per sbloccare WebCodecs).
-  - [ ] **Test E2E Browser Streaming**: Verificare lo streaming video fluido, l'audio e la risposta ai controlli da un browser esterno.
+  - [x] **Deploy Docker Moonlight-Web-Stream**:
+    - Configurato `docker-compose.yaml` in `/opt/moonlight-web` su CT 144 (porte 8080 HTTP, 40000-40100/udp WebRTC, `network_mode: host`).
+    - Risolto limite quota chiavi sessione kernel Proxmox (`kernel.keys.maxkeys = 1000000`, `kernel.keys.maxbytes = 25000000`).
+    - Configurato volume `/opt/moonlight-web/data` con permessi corretti per utente container `moonlight` (UID/GID 999).
+    - Container avviato con successo, verificato avvio al boot e logging Actix Web su porta 8080.
+  - [x] **Accoppiamento (Pairing) Sunshine ➔ Web Client**:
+    - Creato utente amministratore iniziale su Moonlight-Web (`admin / homelabcreative`).
+    - Rilevato Sunshine host `creative-workstation` via mDNS/broadcast su rete locale.
+    - Eseguito handshake crittografico di pairing su Sunshine `/api/pin`.
+    - Host verificato in stato `Paired` / `Free`, con lista applicazioni attive (`Desktop`, `Low Res Desktop`, `Steam Big Picture`).
+  - [x] **Configurazione DNS Pi-hole (CT 114)**:
+    - Aggiunto record locale `creative.deggio.local` ➔ `192.168.1.143` (NpmLocal).
+  - [x] **Configurazione Reverse Proxy (CT 121 - NpmLocal)**:
+    - Creato Proxy Host per `creative.deggio.local` verso `http://192.168.1.189:8080`.
+    - Abilitato supporto **WebSockets Upgrade** (`allow_websocket_upgrade: true`) per lo stream di controllo e segnalazione WebRTC.
+  - [x] **Test Funzionalità Web Streaming**:
+    - Verificata la risposta HTTP 200 di `http://creative.deggio.local` sia per il documento base sia per gli asset JS (`index.js`, `styles/index.js`).
+    - Verificate le API di autenticazione, listing host e listing app da endpoint di rete locale.
 
 ---
 

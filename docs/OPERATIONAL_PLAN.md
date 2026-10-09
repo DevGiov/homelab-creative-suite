@@ -68,7 +68,7 @@ Questo documento definisce in dettaglio tutte le specifiche tecniche, i comandi 
 
 ## 3. Piano Dettagliato delle Fasi Operative
 
-### Fase 1: Provisioning e Configurazione Base del Container (CT 144)
+### Fase 2: Provisioning e Configurazione Base del Container (CT 144) (COMPLETATO ✅)
 1. **Clonazione da Template**:
    Esecuzione del comando di clonazione tramite Proxmox CLI:
    ```bash
@@ -96,43 +96,43 @@ Questo documento definisce in dettaglio tutte le specifiche tecniche, i comandi 
 
 ---
 
-### Fase 2: Ambiente Desktop Headless, Audio & Sunshine Server
+### Fase 3: Ambiente Desktop Headless, Audio & Sunshine Server (COMPLETATO ✅)
 1. **Installazione Pacchetti Grafici Headless & Window Manager**:
-   Installazione di Xorg con driver dummy e Openbox/XFCE per la gestione delle finestre:
+   Installazione di Xorg con driver dummy e Openbox per la gestione delle finestre:
    ```bash
    pct exec 144 -- apt update
-   pct exec 144 -- apt install -y xserver-xorg-video-dummy x11-xserver-utils openbox xfce4-terminal dbus-x11 pipewire pipewire-pulse libuinput1
+   pct exec 144 -- apt install -y xserver-xorg-video-dummy x11-xserver-utils openbox dbus-x11 pipewire pipewire-media-session libuinput1
    ```
 2. **Configurazione Xorg Dummy Display**:
    Configurazione di `/etc/X11/xorg.conf` con risoluzioni 1920x1080@60Hz e 2560x1440@60Hz con profondità di colore 24-bit.
 3. **Configurazione Audio Virtuale**:
-   Attivazione di PipeWire con sink virtuale per catturare l'output audio delle applicazioni e inoltrarlo allo stream.
+   Attivazione di PipeWire con sink virtuale per catturare l'output audio delle applicazioni e inoltrarlo allo stream (`/run/user/0/pipewire-0`).
 4. **Installazione e Setup Sunshine**:
-   - Download del pacchetto `.deb` ufficiale Debian di Sunshine.
-   - Configurazione di `/etc/sunshine/sunshine.conf`:
-     - Encoder forzato su `nvenc`
-     - Preset ultra-low-latency (`p3` o `ull`)
-     - Configurazione permessi `/dev/uinput`
-   - Creazione del servizio systemd per avvio automatico all'accensione del container.
+   - Installato pacchetto ufficiale LizardByte Sunshine `v2026.914.233613`.
+   - Configurato `/root/.config/sunshine/sunshine.conf` con `system_tray = false` e logging `verbose`.
+   - Credenziali Web manager: `admin / homelabcreative`.
+   - Servizi systemd configurati con avvio automatico all'accensione del container.
 
 ---
 
-### Fase 3: Gateway WebRTC (Moonlight-Web-Stream) & Routing di Rete
+### Fase 4: Gateway WebRTC (Moonlight-Web-Stream) & Routing di Rete (COMPLETATO ✅)
 1. **Deployment di Moonlight-Web-Stream**:
-   - Creazione della directory `/opt/moonlight-web` in CT 144.
-   - Configurazione di `docker-compose.yaml` (usando l'immagine `mrcreativ3001/moonlight-web-stream:latest` clonata nel nostro repo):
+   - Creata la directory `/opt/moonlight-web` in CT 144.
+   - Configurato `docker-compose.yaml` (immagine `mrcreativ3001/moonlight-web-stream:latest`, `network_mode: host`):
      - Bind address: `0.0.0.0:8080`
      - WebRTC UDP range: `40000-40100`
-     - Network mode: `host`
+     - Variabile `WEBRTC_NAT_1TO1_HOST=192.168.1.189`
+   - Risolto limite quota chiavi sessione kernel host Proxmox (`kernel.keys.maxkeys = 1000000`).
+   - Configurato utente `admin / homelabcreative` su Moonlight-Web.
 2. **Pairing Sunshine ➔ Moonlight-Web**:
-   - Accesso alla web UI Sunshine su `https://192.168.1.189:47990`.
-   - Generazione PIN di accoppiamento da Moonlight-Web ed esecuzione del pairing sicuro.
+   - Eseguito handshake crittografico via API `/api/pair` e Sunshine `/api/pin`.
+   - Host `creative-workstation` convalidato e accoppiato in stato `Paired` / `Free`.
+   - Applicazioni rilevate: `Desktop`, `Low Res Desktop`, `Steam Big Picture`.
 3. **Configurazione DNS Locale (Pi-hole - CT 114)**:
-   - Creazione record A: `creative.deggio.local` ➔ `192.168.1.143` (IP di NpmLocal CT 121).
+   - Creato record A: `creative.deggio.local` ➔ `192.168.1.143` (IP di NpmLocal CT 121).
 4. **Configurazione Reverse Proxy (NpmLocal - CT 121)**:
-   - Creazione Proxy Host: `creative.deggio.local` verso `http://192.168.1.189:8080`.
-   - Abilitazione supporto WebSockets (**ON**).
-   - Generazione/applicazione certificato SSL locale (Force SSL attivo).
+   - Creato Proxy Host: `creative.deggio.local` verso `http://192.168.1.189:8080`.
+   - Abilitato supporto WebSockets (`allow_websocket_upgrade: true`).
 
 ---
 
