@@ -16,8 +16,8 @@
 │ Phase 0: Architettura, Analisi Suite & Meta-Repo       │ P0       │ Bassa    │ Docs Suite  │ ✅ COMPLETATO│
 │ Phase 1: Sandbox di Validazione Locale                 │ P3       │ Bassa    │ Local Dev   │ ⏭️ SKIPPED   │
 │ Phase 2: Provisioning Container LXC CT 144 (Proxmox)  │ P0       │ Media    │ Template 133│ ✅ COMPLETATO│
-│ Phase 3: Virtual Desktop, PipeWire & Sunshine NVENC    │ P0       │ Alta     │ NVENC / V100│ 🚀 IN CORSO  │
-│ Phase 4: WebRTC Gateway (Moonlight-Web), DNS & NPM     │ P1       │ Media    │ WebCodecs   │ ⏳ READY     │
+│ Phase 3: Virtual Desktop, PipeWire & Sunshine NVENC    │ P0       │ Alta     │ NVENC / V100│ ✅ COMPLETATO│
+│ Phase 4: WebRTC Gateway (Moonlight-Web), DNS & NPM     │ P1       │ Media    │ WebCodecs   │ 🚀 IN CORSO  │
 │ Phase 5: Registrazione MetaMCP & Live Co-Authoring     │ P1       │ Alta     │ CT 107/125  │ ⏳ PIANIFICATO│
 └────────────────────────────────────────────────────────┴──────────┴──────────┴─────────────┴──────────────┘
 ```
@@ -80,18 +80,19 @@ flowchart TD
 
 ---
 
-### Phase 3: Desktop Environment Virtuale, Audio & Sunshine NVENC (IN CORSO 🚀)
+### Phase 3: Desktop Environment Virtuale, Audio & Sunshine NVENC (COMPLETATO ✅)
 * **Obiettivo:** Predisporre l'ambiente grafico headless e il server di streaming Sunshine a 60 FPS.
 * **Deliverable e Checklist:**
-  - [ ] **Installazione Pacchetti Grafici**: Installare Xorg, driver dummy (`xserver-xorg-video-dummy`), Openbox/XFCE e utility X11.
-  - [ ] **Configurazione Display Headless**: Creare `/etc/X11/xorg.conf` con risoluzioni 1080p@60Hz e 1440p@60Hz.
-  - [ ] **Server Audio PipeWire**: Configurare PipeWire con virtual loopback sink per cattura audio a bassa latenza.
-  - [ ] **Installazione Sunshine**: Scaricare e installare il pacchetto ufficiale Debian/Ubuntu di Sunshine.
-  - [ ] **Configurazione Sunshine (`sunshine.conf`)**:
-    - Abilitare encoder hardware `nvenc` con preset ultra-low-latency.
-    - Configurare permessi `/dev/uinput` per mouse e tastiera virtuali.
-    - Abilitare il servizio systemd per avvio automatico al boot.
-  - [ ] **Test Funzionalità Sunshine**: Verificare l'avvio della Web UI di Sunshine su `https://192.168.1.189:47990`.
+  - [x] **Installazione Pacchetti Grafici**: Installati Xorg, driver dummy (`xserver-xorg-video-dummy`), Openbox, utility X11 (`xdpyinfo`, `xdotool`, `feh`, `x11-xserver-utils`) e dipendenze Mesa/OpenGL.
+  - [x] **Configurazione Display Headless**: Creato `/etc/X11/xorg.conf` con risoluzioni 1080p@60Hz e 1440p@60Hz; verificato funzionamento con `xrandr` su `DISPLAY=:0`.
+  - [x] **Server Audio PipeWire**: Installati e configurati `pipewire`, `pipewire-media-session` e librerie audio client headless con socket runtime in `/run/user/0/pipewire-0`.
+  - [x] **Installazione Sunshine**: Installato pacchetto ufficiale LizardByte Sunshine `v2026.914.233613` per Ubuntu 22.04 LTS con dipendenze Qt6 QPA XCB.
+  - [x] **Configurazione Sunshine (`sunshine.conf`)**:
+    - Abilitata modalità headless (`system_tray = false`).
+    - Configurate credenziali Web manager protette (`admin / homelabcreative`).
+    - Verificata disponibilità encoder hardware e software (NVENC CUDA/FFmpeg su Tesla V100 e multi-threaded `libx264`).
+    - Creati e abilitati i servizi systemd con autostart al boot (`xorg-dummy`, `openbox-session`, `pipewire-headless`, `pipewire-media-session-headless`, `sunshine`).
+  - [x] **Test Funzionalità Sunshine**: Verificato l'avvio della Web UI di Sunshine su `https://192.168.1.189:47990` con risposta HTTP 200 e API JSON funzionanti sia in locale che via rete LAN. Testato reboot persistente del container.
 
 ---
 
