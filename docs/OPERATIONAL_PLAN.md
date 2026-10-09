@@ -151,20 +151,34 @@ Questo documento definisce in dettaglio tutte le specifiche tecniche, i comandi 
 
 ---
 
-### Fase 5: Registrazione MetaMCP (CT 107) & Live Co-Authoring con `homelab-agent` (CT 125)
-1. **Creative Suite MCP Bridge (CT 144)**:
-   - Configurazione di un server MCP unificato (SSE/HTTP su porta `7900`) che espone i comandi IPC delle applicazioni creative (`deckcraft`, `wordcraft`, `photocraft`, `vectorcraft`, `cadcraft`, `soundcraft`).
-2. **Registrazione Upstream su MetaMCP (CT 107 - `192.168.1.175:12008`)**:
-   - Registrazione dell'endpoint `http://192.168.1.189:7900/sse` nel gateway MetaMCP come server `creative-suite`.
-   - **Vantaggio Architetturale Chiave**: Gli strumenti diventano immediatamente disponibili con prefisso `creative-suite__*` su tutti i client connessi a MetaMCP:
-     - Antigravity IDE (sulla workstation dev)
-     - Claude Code, Cursor, Copilot o script di automazione
-     - `homelab-agent` (CT 125) via auto-discovery dinamica di `MetaMCPClient`.
-3. **Ottimizzazioni Specifiche in `homelab-agent` (CT 125)**:
-   - **Rollback Transazionale (Saga LIFO)** in `tool_catalog.py`: mappatura delle azioni inverse di undo (es. cancellazione di una shape/slide creata erroneamente).
-   - **Mode Policy & Permessi**: autorizzazione dei tool nel registry `metamcp` o profilo `creative`.
-   - **Grounding Visivo e Sincronizzazione Streaming**: cattura di screenshot dal frame buffer/Sunshine per analisi multimodale e verifica visiva in tempo reale prima di confermare all'utente in chat.
-4. **Validazione E2E in Tempo Reale**:
-   - Connessione utente via browser su `https://creative.deggio.local`.
-   - Invio comandi in chat ad un agente (es. `homelab-agent` o Antigravity) per manipolare un asset grafico o documento.
-   - Visualizzazione del rendering dinamico a 60 FPS direttamente sullo schermo streamed.
+### Fase 5: Registrazione MetaMCP (CT 107) & Live Co-Authoring via Universal Gateway
+1. **Compilazione Nativa ed Esecuzione Sessione (CT 144)**:
+   - Compilati con Rust 1.99 su Ubuntu 22.04 LTS:
+     - `/opt/creative-suite/bin/deckcraft` (Desktop presentation GUI)
+     - `/opt/creative-suite/bin/deckcraft-cli` (CLI headless e bridge IPC loopback TCP)
+     - `/opt/creative-suite/bin/wordcraft-cli` (CLI headless e doc processor)
+   - Avviata sessione desktop Openbox su display virtuale `:0`, con DeckCraft in ascolto per comandi di controllo sulla porta loopback `7979`.
+2. **Creative Suite MCP Bridge (CT 144 - porta 7900)**:
+   - Configurato server FastMCP + Starlette sotto systemd (`creative-suite-mcp.service`):
+     - Supporta sia **Streamable HTTP** (`/mcp`) sia **SSE** (`/sse`).
+     - Gestito Starlette `lifespan` asincrono per l'inizializzazione del session manager.
+     - Disattivata protezione DNS rebinding (`enable_dns_rebinding_protection = False`) per autorizzare chiamate LAN/proxy.
+   - Espone 7 tool MCP:
+     - `deckcraft_app_command` (invio comandi live alla GUI: `slide.new`, `slide.inspect`, `shape.insert`, `edit.undo`, ecc.)
+     - `deckcraft_cli` (operazioni headless deckcraft)
+     - `wordcraft_cli` (operazioni headless wordcraft)
+     - `creative_session_launch` (avvio o focus applicazione grafica su `:0`)
+     - `creative_session_status` (monitoraggio display, porte IPC e finestre visibili)
+     - `creative_screenshot` (cattura frame 1080p da `:0` su `/workspace/screenshots` con opzione base64)
+     - `creative_workspace_files` (browsing directory condivisa `/workspace`)
+3. **Registrazione Upstream su MetaMCP Gateway (CT 107 - `192.168.1.175:12008`)**:
+   - Inserito server `creative-suite` (tipo `STREAMABLE_HTTP`, url `http://192.168.1.189:7900/mcp`) nel DB PostgreSQL `metamcp_db`.
+   - Associato al namespace `Homelab` (`5b8f6961-2044-450f-9f63-4cf753e5c816`) sull'endpoint `MetaMCP`.
+   - Tool immediatamente scoperti ed esposti globalmente con prefisso `creative-suite__*` (disponibili per Antigravity IDE, Claude, script o agenti esterni).
+4. **Verifica Funzionale e Visual Grounding E2E**:
+   - Eseguita chiamata a `creative-suite__deckcraft_app_command` via MetaMCP per inserire un roundRect personalizzato con testo *"Created via MetaMCP Universal Gateway!"*.
+   - Eseguita cattura visiva con `creative-suite__creative_screenshot`: verificato il corretto rendering a schermo in tempo reale.
+5. **Integrazione `homelab-agent` (CT 125) (IN SOSPESO ⏸️)**:
+   - *In sospeso su richiesta utente per consentire test preliminari con MetaMCP tramite agenti esterni*.
+   - L'implementazione successiva includerà la definizione del catalogo Saga LIFO in `tool_catalog.py`, mode policy in `mode_policy.py` e inline visual previews.
+
