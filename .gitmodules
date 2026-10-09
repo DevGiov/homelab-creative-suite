@@ -1,0 +1,42 @@
+[submodule "cadcraft"]
+	path = cadcraft
+	url = https://github.com/storytold/cadcraft.git
+[submodule "artcraft"]
+	path = artcraft
+	url = https://github.com/storytold/artcraft.git
+[submodule "deckcraft"]
+	path = deckcraft
+	url = https://github.com/storytold/deckcraft.git
+[submodule "designcraft"]
+	path = designcraft
+	url = https://github.com/storytold/designcraft.git
+[submodule "effectcraft"]
+	path = effectcraft
+	url = https://github.com/storytold/effectcraft.git
+[submodule "filmcraft"]
+	path = filmcraft
+	url = https://github.com/storytold/filmcraft.git
+[submodule "gridcraft"]
+	path = gridcraft
+	url = https://github.com/storytold/gridcraft.git
+[submodule "lightcraft"]
+	path = lightcraft
+	url = https://github.com/storytold/lightcraft.git
+[submodule "pdfcraft"]
+	path = pdfcraft
+	url = https://github.com/storytold/pdfcraft.git
+[submodule "photocraft"]
+	path = photocraft
+	url = https://github.com/storytold/photocraft.git
+[submodule "soundcraft"]
+	path = soundcraft
+	url = https://github.com/storytold/soundcraft.git
+[submodule "vectorcraft"]
+	path = vectorcraft
+	url = https://github.com/storytold/vectorcraft.git
+[submodule "wordcraft"]
+	path = wordcraft
+	url = https://github.com/storytold/wordcraft.git
+[submodule "moonlight-web-stream"]
+	path = moonlight-web-stream
+	url = https://github.com/MrCreativ3001/moonlight-web-stream.git
