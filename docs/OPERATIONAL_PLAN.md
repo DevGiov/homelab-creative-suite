@@ -17,7 +17,7 @@ Questo documento definisce in dettaglio tutte le specifiche tecniche, i comandi 
 | **Dimensione Disco Rootfs** | `32 GB` (iniziale) | Spazio abbondante per dipendenze Xorg, librerie, Sunshine e build della suite. |
 | **Allocazione CPU** | `6 Core` | Bilanciamento sui 12 thread dell'host per compilazione e rendering fluido. |
 | **Allocazione RAM / Swap** | `8 GB RAM` / `2 GB Swap` | Salvaguardia memoria host (rimangono ~5-6 GB liberi su 20 GB fisici). |
-| **Indirizzo IP Statico** | **`192.168.1.187/24`** | IP libero (evita sovrapposizioni con CT 142 `scriberr` a `.186` e CT 143 a `.188`). |
+| **Indirizzo IP Statico** | **`192.168.1.189/24`** | IP verificato libero (il `.187` è occupato da device fisico LAN, `.188` è CT 143). |
 | **Gateway & DNS** | `192.168.1.1` / `192.168.1.170` | Default gateway LAN e resolver DNS Pi-hole (CT 114). |
 
 ---
@@ -26,7 +26,7 @@ Questo documento definisce in dettaglio tutte le specifiche tecniche, i comandi 
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
-│ CT 144: creative-workstation (192.168.1.187 su SSD2)                                  │
+│ CT 144: creative-workstation (192.168.1.189 su SSD2)                                  │
 │                                                                                        │
 │  ┌──────────────────────────────────────────────────────────────────────────────────┐  │
 │  │ GPU Passthrough Driver Userspace (NVIDIA 550.144.03 - libcuda, libnvidia-encode) │  │
@@ -77,15 +77,15 @@ Questo documento definisce in dettaglio tutte le specifiche tecniche, i comandi 
 2. **Dimensionamento Risorse & Configurazione Rete**:
    ```bash
    pct set 144 -cores 6 -memory 8192 -swap 2048
-   pct set 144 -rootfs SSD2:32
-   pct set 144 -net0 name=eth0,bridge=vmbr0,firewall=1,gw=192.168.1.1,ip=192.168.1.187/24
+   pct resize 144 rootfs 32G
+   pct set 144 -net0 name=eth0,bridge=vmbr0,firewall=1,gw=192.168.1.1,ip=192.168.1.189/24
    pct set 144 -nameserver 192.168.1.170 -searchdomain deggio.local
    pct set 144 -features nesting=1,keyctl=1
    ```
 3. **Mount Storage Condiviso Progetti**:
    Creazione di una cartella progetti su storage persistente e bind-mount in `/workspace`:
    ```bash
-   pct set 144 -mp0 /Nass/Nasss/creative_workspace,mp=/workspace
+   pct set 144 -mp0 /Nass/Nasss/Homelab/creative_suite,mp=/workspace
    ```
 4. **Verifica GPU Passthrough**:
    Avvio del container e verifica dei nodi NVIDIA:
@@ -125,12 +125,12 @@ Questo documento definisce in dettaglio tutte le specifiche tecniche, i comandi 
      - WebRTC UDP range: `40000-40100`
      - Network mode: `host`
 2. **Pairing Sunshine ➔ Moonlight-Web**:
-   - Accesso alla web UI Sunshine su `https://192.168.1.187:47990`.
+   - Accesso alla web UI Sunshine su `https://192.168.1.189:47990`.
    - Generazione PIN di accoppiamento da Moonlight-Web ed esecuzione del pairing sicuro.
 3. **Configurazione DNS Locale (Pi-hole - CT 114)**:
    - Creazione record A: `creative.deggio.local` ➔ `192.168.1.143` (IP di NpmLocal CT 121).
 4. **Configurazione Reverse Proxy (NpmLocal - CT 121)**:
-   - Creazione Proxy Host: `creative.deggio.local` verso `http://192.168.1.187:8080`.
+   - Creazione Proxy Host: `creative.deggio.local` verso `http://192.168.1.189:8080`.
    - Abilitazione supporto WebSockets (**ON**).
    - Generazione/applicazione certificato SSL locale (Force SSL attivo).
 
@@ -155,7 +155,7 @@ Questo documento definisce in dettaglio tutte le specifiche tecniche, i comandi 
 1. **Creative Suite MCP Bridge (CT 144)**:
    - Configurazione di un server MCP unificato (SSE/HTTP su porta `7900`) che espone i comandi IPC delle applicazioni creative (`deckcraft`, `wordcraft`, `photocraft`, `vectorcraft`, `cadcraft`, `soundcraft`).
 2. **Registrazione Upstream su MetaMCP (CT 107 - `192.168.1.175:12008`)**:
-   - Registrazione dell'endpoint `http://192.168.1.187:7900/sse` nel gateway MetaMCP come server `creative-suite`.
+   - Registrazione dell'endpoint `http://192.168.1.189:7900/sse` nel gateway MetaMCP come server `creative-suite`.
    - **Vantaggio Architetturale Chiave**: Gli strumenti diventano immediatamente disponibili con prefisso `creative-suite__*` su tutti i client connessi a MetaMCP:
      - Antigravity IDE (sulla workstation dev)
      - Claude Code, Cursor, Copilot o script di automazione

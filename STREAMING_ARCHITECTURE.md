@@ -14,7 +14,7 @@ L'obiettivo è eseguire le applicazioni creative direttamente su Proxmox con acc
 │                                                                                                        │
 │  ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐  │
 │  │ Container LXC GPU (Basato su Template CT 133 / Passthrough NVIDIA)                               │  │
-│  │ IP: 192.168.1.187 (creative-workstation)                                                         │  │
+│  │ IP: 192.168.1.189 (creative-workstation)                                                         │  │
 │  │                                                                                                  │  │
 │  │  ┌────────────────────────────────────────────────────────────────────────────────────────────┐  │  │
 │  │  │ Virtual Desktop Session (X11 Dummy / Openbox / XFCE) + PipeWire Virtual Sink             │  │  │
@@ -197,7 +197,7 @@ services:
     restart: unless-stopped
     network_mode: host
     environment:
-      - WEBRTC_NAT_1TO1_HOST=192.168.1.187
+      - WEBRTC_NAT_1TO1_HOST=192.168.1.189
       - WEBRTC_PORT_RANGE=40000:40100
       - BIND_ADDRESS=0.0.0.0:8080
     volumes:
@@ -212,7 +212,7 @@ services:
 ### 6.1 Nginx Proxy Manager Locale (CT 121 - NpmLocal)
 Configurazione dell'host di proxy inverso:
 - **Domain Names**: `creative.deggio.local`
-- **Forward Hostname / IP**: `192.168.1.187`
+- **Forward Hostname / IP**: `192.168.1.189`
 - **Forward Port**: `8080`
 - **Cache Assets**: Off
 - **Block Common Exploits**: On
