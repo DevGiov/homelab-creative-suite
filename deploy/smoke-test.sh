@@ -30,6 +30,11 @@ sys.exit(0 if reply.get("ok") else f"reply: {reply}")
 EOF
 }
 
+# Only the current Sunshine run counts: older runs in the same boot may predate a fix.
+sunshine_log() { journalctl _SYSTEMD_INVOCATION_ID="$(systemctl show -p InvocationID --value sunshine)" --no-pager -o cat; }
+sunshine_audio_ok() { ! sunshine_log | grep -q 'Unable to initialize audio capture'; }
+sunshine_nvenc_ok() { sunshine_log | grep -q 'Found H.264 encoder: h264_nvenc'; }
+
 units=(xorg-dummy openbox-session pipewire-headless pipewire-media-session-headless pipewire-pulse-headless
        sunshine creative-suite-mcp docker)
 apps=()
@@ -49,8 +54,8 @@ check "pulse server reachable" pactl info
 check "audio sink present" sh -c 'pactl list short sinks | grep -q .'
 check "GPU visible" nvidia-smi -L
 check "/dev/nvidia-modeset present" test -e /dev/nvidia-modeset
-check "sunshine audio initialised" sh -c '! journalctl -u sunshine -b --no-pager | grep -q "Unable to initialize audio capture"'
-check "sunshine last encoder is NVENC" sh -c 'journalctl -u sunshine -b --no-pager | grep "Creating encoder" | tail -1 | grep -q nvenc'
+check "sunshine audio initialised" sunshine_audio_ok
+check "sunshine selected NVENC" sunshine_nvenc_ok
 
 check "MCP bridge /health" sh -c 'curl -sf http://127.0.0.1:7900/health | grep -q "\"status\":\"ok\""'
 check "Moonlight web HTTP 200" sh -c '[ "$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/)" = 200 ]'

@@ -40,9 +40,21 @@ Per evitare installazioni locali separate su ogni dispositivo e consentire un pa
 
 ## 🤖 Integrazione Agenti & Co-Authoring Live
 
-Tutte le 12 applicazioni scritte in Rust espongono nativamente un server **Model Context Protocol (MCP)** e una porta di controllo IPC loopback:
-- **Modalità Headless (`<app>-cli mcp`)**: Consente a `homelab-agent` o Antigravity di creare, modificare e convertire documenti in background senza aprire finestre grafiche.
-- **Modalità Remote Bridge (`<app>-cli mcp --connect <port>`)**: Permette all'agente di inviare comandi all'applicazione GUI aperta sul desktop virtuale. L'utente osserva l'agente manipolare gli elementi in tempo reale via streaming video a 60 FPS.
+Le applicazioni della suite espongono un canale di controllo JSON-lines su loopback (`--control <port>`) e una CLI headless. Sulla workstation (CT 144) il **bridge MCP** [`mcp-server/`](./mcp-server) le rende disponibili a tutti gli agenti tramite MetaMCP (`creative-suite__*`):
+
+| Tool | Uso |
+| :--- | :--- |
+| `app_command(app, command, params)` | Esegue un comando engine nell'app aperta (modifica live visibile nello stream) |
+| `app_control(app, method, params)` | Metodo raw del canale di controllo (`ui.inspect`, `document.inspect`, `ui.screenshot`, `app.save`…) |
+| `app_cli(app, action, args)` | Operazione headless senza finestra (`convert`, `render`, `info`…), azioni in allowlist per app |
+| `session_launch(app, file_path)` / `session_stop(app)` | Avvia/ferma l'app sul desktop virtuale (unit `creative-app@<app>`) |
+| `session_status()` | Stato unit, porte di controllo e finestre visibili |
+| `screenshot(filename, include_base64)` | Cattura del display `:0` in `/workspace/screenshots/` |
+| `workspace_files(subpath)` | Navigazione di `/workspace` (NAS) |
+
+App installate oggi: **DeckCraft** (porta 7979), **WordCraft** (7981), **GridCraft** (7983), dichiarate in [`deploy/apps/`](./deploy/apps). Tutti i percorsi sono confinati in `/workspace`; nessuna chiamata passa da una shell.
+
+Configurazione e deploy del CT: [`deploy/`](./deploy) (`install.sh` idempotente, `smoke-test.sh` per la verifica live).
 
 ---
 
@@ -66,6 +78,8 @@ creative_suite/
 ├── filmcraft/                # Video editor NLE in Rust
 ├── gridcraft/                # Fogli di calcolo in Rust
 ├── lightcraft/               # Photo catalog e RAW in Rust
+├── deploy/                   # Config versionata di CT 144 (systemd, Sunshine, app), install e smoke test
+├── mcp-server/               # Bridge MCP (FastMCP) + test pytest
 ├── moonlight-web-stream/     # WebRTC gateway client per lo streaming nel browser
 ├── pdfcraft/                 # Gestione PDF in Rust
 ├── photocraft/               # Fotoritocco raster in Rust

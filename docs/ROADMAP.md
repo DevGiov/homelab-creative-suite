@@ -3,7 +3,7 @@
 > **Document Status:** Active Execution Plan & Tracking Board  
 > **Target Environment:** Proxmox VE (`DESKTOP-PGMTM0B` - `192.168.1.69`) / CT 144 (`192.168.1.189`)  
 > **Source Specs:** [`OPERATIONAL_PLAN.md`](OPERATIONAL_PLAN.md) · [`STREAMING_ARCHITECTURE.md`](../STREAMING_ARCHITECTURE.md)  
-> **Current Baseline:** v0.3.0 (CT 144 provisionato su SSD2 con GPU Passthrough V100 e storage condiviso /workspace)  
+> **Current Baseline:** v0.4.0 (CT 144 su SSD2, rootfs 64 GB, GPU V100, config versionata in [`deploy/`](../deploy))  
 
 ---
 
@@ -17,8 +17,9 @@
 │ Phase 1: Sandbox di Validazione Locale                 │ P3       │ Bassa    │ Local Dev   │ ⏭️ SKIPPED   │
 │ Phase 2: Provisioning Container LXC CT 144 (Proxmox)  │ P0       │ Media    │ Template 133│ ✅ COMPLETATO│
 │ Phase 3: Virtual Desktop, PipeWire & Sunshine NVENC    │ P0       │ Alta     │ NVENC / V100│ ✅ COMPLETATO│
-│ Phase 4: WebRTC Gateway (Moonlight-Web), DNS & NPM     │ P1       │ Media    │ WebCodecs   │ 🚀 IN CORSO  │
-│ Phase 5: Registrazione MetaMCP & Live Co-Authoring     │ P1       │ Alta     │ CT 107/125  │ ⏳ PIANIFICATO│
+│ Phase 4: WebRTC Gateway (Moonlight-Web), DNS & NPM     │ P1       │ Media    │ WebCodecs   │ ✅ COMPLETATO│
+│ Phase 5: Registrazione MetaMCP & Live Co-Authoring     │ P1       │ Alta     │ CT 107/125  │ 🟢 CORE OK   │
+│ Phase 6: Stabilizzazione (audio, NVENC, sessione, MCP) │ P0       │ Alta     │ deploy/     │ 🚀 IN CORSO  │
 └────────────────────────────────────────────────────────┴──────────┴──────────┴─────────────┴──────────────┘
 ```
 
@@ -30,15 +31,17 @@
 flowchart TD
     P0["✅ Phase 0: Analisi Suite & Meta-Repo Git"]:::done
     P1["⏭️ Phase 1: Sandbox Locale (Skipped)"]:::skipped
-    P2["🔄 Phase 2: Provisioning CT 144 su SSD2"]:::active
-    P3["⏳ Phase 3: Desktop Headless, Audio & Sunshine NVENC"]:::pending
-    P4["⏳ Phase 4: Moonlight-Web-Stream, DNS & NPM SSL"]:::pending
-    P5["⏳ Phase 5: Suite Orchestration & Co-Authoring con homelab-agent"]:::pending
+    P2["✅ Phase 2: Provisioning CT 144 su SSD2"]:::done
+    P3["✅ Phase 3: Desktop Headless, Audio & Sunshine"]:::done
+    P4["✅ Phase 4: Moonlight-Web-Stream, DNS & NPM"]:::done
+    P5["🟢 Phase 5: MetaMCP & Co-Authoring (homelab-agent in sospeso)"]:::done
+    P6["🔄 Phase 6: Stabilizzazione & deploy versionato"]:::active
 
     P0 --> P2
     P2 --> P3
     P3 --> P4
     P4 --> P5
+    P5 --> P6
 
     classDef done fill:#2e7d32,stroke:#1b5e20,color:#fff;
     classDef skipped fill:#757575,stroke:#424242,color:#fff;

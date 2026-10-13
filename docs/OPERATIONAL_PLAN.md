@@ -136,21 +136,6 @@ Questo documento definisce in dettaglio tutte le specifiche tecniche, i comandi 
 
 ---
 
-### Fase 4: Distribuzione Suite Creativa & Orchestrazione Sessione
-1. **Compilazione ed Installazione Binari**:
-   - Installazione dei tool CLI e GUI in `/opt/creative-suite/bin`:
-     `deckcraft`, `wordcraft`, `photocraft`, `vectorcraft`, `cadcraft`, `soundcraft`, `artcraft`.
-2. **Script di Sessione e Autostart**:
-   - Creazione dello script `/opt/creative-suite/scripts/start-session.sh` che lancia il server grafico Xorg, il window manager e predispone le porte di controllo IPC in ascolto:
-     - DeckCraft: porta `7979`
-     - WordCraft: porta `7981`
-     - PhotoCraft: porta `7878`
-     - VectorCraft: porta `7980`
-     - CADCraft: porta `7982`
-     - SoundCraft: porta `7801`
-
----
-
 ### Fase 5: Registrazione MetaMCP (CT 107) & Live Co-Authoring via Universal Gateway
 1. **Compilazione Nativa ed Esecuzione Sessione (CT 144)**:
    - Compilati con Rust 1.99 su Ubuntu 22.04 LTS:
@@ -163,7 +148,7 @@ Questo documento definisce in dettaglio tutte le specifiche tecniche, i comandi 
      - Supporta sia **Streamable HTTP** (`/mcp`) sia **SSE** (`/sse`).
      - Gestito Starlette `lifespan` asincrono per l'inizializzazione del session manager.
      - Disattivata protezione DNS rebinding (`enable_dns_rebinding_protection = False`) per autorizzare chiamate LAN/proxy.
-   - Espone 7 tool MCP:
+   - Espone 7 tool MCP (*sostituiti in Fase 6 dai tool generici multi-app, vedi sotto*):
      - `deckcraft_app_command` (invio comandi live alla GUI: `slide.new`, `slide.inspect`, `shape.insert`, `edit.undo`, ecc.)
      - `deckcraft_cli` (operazioni headless deckcraft)
      - `wordcraft_cli` (operazioni headless wordcraft)
