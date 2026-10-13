@@ -201,3 +201,23 @@ flowchart TD
   - **LightCraft** usa ~300% di CPU nei primi secondi (generazione delle foto demo) e poi 0%.
   - DeckCraft e GridCraft restano `AUTOSTART=yes` come in Phase 6: all'avvio compaiono due finestre sovrapposte. Mettere `AUTOSTART=no` in `deploy/apps/{deckcraft,gridcraft}.env` dà un desktop pulito con il pannello.
   - Build in `/opt/creative-suite/build/target` occupa 13 GB; `cargo clean` quando serve spazio.
+
+### Collaudo dei tool MCP (2026-10-14)
+Ogni tool è stato esercitato via MetaMCP con casi d'uso reali; i risultati sono verificati sui file prodotti, non solo sull'`ok` del tool.
+
+| Flusso | Esito |
+|---|---|
+| GridCraft: 7 celle + formula `=SUM(B2:B3)*1.22` → `.xlsx` → `cat --csv`/`--formulas`/`info` | 2111,21; formula conservata |
+| WordCraft: titolo, testo grassetto, elenco → `.docx` → `text`/`info`/PDF/PNG | testo e struttura corretti |
+| PdfCraft (canale con file di controllo): apre il PDF, `ui.state`, `ui.set zoom`, `view.theme.dark`, screenshot | testo, elenco e segnalibro nel PDF |
+| DeckCraft: 2 slide con forme → `app.export .pptx` → PDF → testo letto da PdfCraft | entrambe le slide |
+| PhotoCraft (token, percorsi relativi): `image.adjustments.invert` → PNG | pixel FF7A00→0085FF verificati |
+| CADCraft: `cmdline.input` (cerchio r=5, linea) → DXF → `info` → SVG | geometria esatta |
+| VectorCraft: `shape.rectangle/ellipse` → SVG (dialogo `svgOptions` confermato) → `info`/PNG | 2 tracciati |
+| EffectCraft, DesignCraft, LightCraft, SoundCraft, FilmCraft | comandi live ok (composizione+livelli, cornice, `develop.set`, traccia click, tracce) |
+
+**Problemi trovati e risolti**
+- Gli elenchi di comandi pesano **19–314 KB** (VectorCraft 304 KB): nuovo `app_commands` con filtro e limite; `app_cli` tronca a 16k caratteri con indicazione.
+- `app_cli` usa un motore headless **separato** (EffectCraft `info` mostrava il progetto demo, non quello aperto): ora scritto nella descrizione del tool.
+- `session_status` mostrava la porta casuale di un PdfCraft fermo: ora `null` finché non è in esecuzione.
+- VectorCraft *Salva con nome* `.svg` apre un dialogo in attesa: documentato (`ui.dialog.confirm`).

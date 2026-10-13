@@ -44,9 +44,10 @@ Le applicazioni della suite espongono un canale di controllo JSON-lines su loopb
 
 | Tool | Uso |
 | :--- | :--- |
+| `app_commands(app, filter, limit)` | Cerca gli id dei comandi di un'app aperta (filtro per parole, max 200 risultati): le liste complete pesano 19–314 KB |
 | `app_command(app, command, params)` | Esegue un comando engine nell'app aperta (modifica live visibile nello stream) |
 | `app_control(app, method, params)` | Metodo raw del canale di controllo (`ui.inspect`, `document.inspect`, `ui.screenshot`, `app.save`…) |
-| `app_cli(app, action, args)` | Operazione headless senza finestra (`convert`, `render`, `info`…), azioni in allowlist per app |
+| `app_cli(app, action, args)` | Operazione headless su file (`convert`, `render`, `info`…), azioni in allowlist per app; è un motore separato, non vede il documento aperto nella GUI; output limitato a 16k caratteri |
 | `session_launch(app, file_path)` / `session_stop(app)` | Avvia/ferma l'app sul desktop virtuale (unit `creative-app@<app>`) |
 | `session_status()` | Stato unit, porte di controllo e finestre visibili |
 | `screenshot(filename, include_base64)` | Cattura del display `:0` in `/workspace/screenshots/` |
