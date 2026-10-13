@@ -17,9 +17,9 @@ import itertools
 import json
 import os
 import re
-import shlex
 import socket
 import subprocess
+import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -30,6 +30,9 @@ from mcp.server.fastmcp import FastMCP
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
 from starlette.routing import Route
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "deploy"))
+from appenv import parse_env_file  # shared with deploy/gen-session-config.py
 
 WORKSPACE_DIR = Path(os.environ.get("CREATIVE_WORKSPACE", "/workspace"))
 BIN_DIR = Path(os.environ.get("CREATIVE_BIN_DIR", "/opt/creative-suite/bin"))
@@ -77,21 +80,6 @@ class AppSpec:
     @property
     def cli_bin(self) -> Path:
         return BIN_DIR / f"{self.name}-cli"
-
-
-def parse_env_file(text: str) -> dict[str, str]:
-    """Parse the KEY=VALUE subset of systemd EnvironmentFile syntax used in deploy/apps."""
-    values = {}
-    for raw in text.splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#"):
-            continue
-        key, sep, value = line.partition("=")
-        if not sep:
-            raise ValueError(f"invalid line: {raw!r}")
-        parts = shlex.split(value)
-        values[key.strip()] = " ".join(parts)
-    return values
 
 
 def choice(env: dict[str, str], key: str, allowed: tuple[str, ...], default: str, where: str) -> str:

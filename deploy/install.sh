@@ -9,7 +9,7 @@ DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(dirname "$DEPLOY_DIR")"
 BIN_DIR=/opt/creative-suite/bin
 VENV=/opt/creative-suite/mcp-server/.venv
-PACKAGES=(pulseaudio-utils locales python3-evdev python3-xlib)
+PACKAGES=(pulseaudio-utils locales python3-evdev python3-xlib tint2)
 
 log() { printf '[install] %s\n' "$*"; }
 
@@ -30,7 +30,6 @@ fi
 log "config files"
 install -m 0644 "$DEPLOY_DIR"/systemd/*.service /etc/systemd/system/
 install -D -m 0644 "$DEPLOY_DIR/sunshine/sunshine.conf" /root/.config/sunshine/sunshine.conf
-install -D -m 0644 "$DEPLOY_DIR/sunshine/apps.json" /root/.config/sunshine/apps.json
 install -D -m 0644 "$DEPLOY_DIR/moonlight/docker-compose.yaml" /opt/moonlight-web/docker-compose.yaml
 install -D -m 0644 "$DEPLOY_DIR/x11/xorg.conf" /etc/X11/xorg.conf
 # pipewire-media-session only exports the "default" metadata (default sink, needed by Sunshine to
@@ -38,6 +37,16 @@ install -D -m 0644 "$DEPLOY_DIR/x11/xorg.conf" /etc/X11/xorg.conf
 mkdir -p /etc/pipewire/media-session.d
 sed -E 's/^(\s*)#(metadata|default-nodes|restore-stream|streams-follow-default)(\s)/\1\2\3/' \
     /usr/share/pipewire/media-session.d/media-session.conf > /etc/pipewire/media-session.d/media-session.conf
+
+install -m 0755 "$DEPLOY_DIR/bin/creative-run" "$DEPLOY_DIR/bin/creative-open" /usr/local/bin/
+
+log "session launchers (Openbox menu, Sunshine app list, tint2 panel)"
+python3 "$DEPLOY_DIR/gen-session-config.py" \
+    --openbox-menu /root/.config/openbox/menu.xml \
+    --openbox-rc /root/.config/openbox/rc.xml \
+    --sunshine-apps /root/.config/sunshine/apps.json \
+    --tint2rc /root/.config/tint2/tint2rc \
+    --desktop-dir /usr/local/share/applications
 
 log "MCP bridge venv"
 [[ -x "$VENV/bin/python3" ]] || python3 -m venv "$VENV"
@@ -48,7 +57,11 @@ systemctl daemon-reload
 systemctl enable -q --now \
     xorg-dummy.service openbox-session.service \
     pipewire-headless.service pipewire-media-session-headless.service pipewire-pulse-headless.service \
-    sunshine.service creative-suite-mcp.service virtualhid-relay.service
+    sunshine.service creative-suite-mcp.service virtualhid-relay.service creative-panel.service
+
+# Pick up the regenerated menu and rules, and the new panel launchers.
+DISPLAY=:0 openbox --reconfigure 2>/dev/null || true
+systemctl restart creative-panel.service
 
 for env_file in "$DEPLOY_DIR"/apps/*.env; do
     app="$(basename "$env_file" .env)"

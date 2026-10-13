@@ -36,7 +36,7 @@ sunshine_audio_ok() { ! sunshine_log | grep -q 'Unable to initialize audio captu
 sunshine_nvenc_ok() { sunshine_log | grep -q 'Found H.264 encoder: h264_nvenc'; }
 
 units=(xorg-dummy openbox-session pipewire-headless pipewire-media-session-headless pipewire-pulse-headless
-       sunshine creative-suite-mcp docker virtualhid-relay)
+       sunshine creative-suite-mcp docker virtualhid-relay creative-panel)
 apps=()  # installed apps started at boot; on-demand apps (AUTOSTART=no) are not expected to run
 for env_file in "$DEPLOY_DIR"/apps/*.env; do
     app="$(basename "$env_file" .env)"
@@ -64,6 +64,19 @@ check "sunshine is the sm_70 build (on hold)" sh -c "apt-mark showhold | grep -q
 check "sunshine audio initialised" sunshine_audio_ok
 check "sunshine selected NVENC" sunshine_nvenc_ok
 
+installed_labels() {
+    for env_file in "$DEPLOY_DIR"/apps/*.env; do
+        [[ -x "$BIN_DIR/$(basename "$env_file" .env)" ]] && sed -n 's/^LABEL=//p' "$env_file"
+    done | sort
+}
+sunshine_apps_match() {
+    diff <(python3 -c 'import json,sys; print("\n".join(sorted(a["name"] for a in json.load(open(sys.argv[1]))["apps"] if a["name"] != "Desktop")))' \
+               /root/.config/sunshine/apps.json) <(installed_labels)
+}
+check "creative-open and creative-run installed" test -x /usr/local/bin/creative-open -a -x /usr/local/bin/creative-run
+check "Sunshine app list = installed apps" sunshine_apps_match
+check "Openbox menu generated" test -s /root/.config/openbox/menu.xml
+check "tint2 panel window present" sh -c 'DISPLAY=:0 xdotool search --class tint2 | grep -q .'
 check "MCP bridge /health" sh -c 'curl -sf http://127.0.0.1:7900/health | grep -q "\"status\":\"ok\""'
 check "Moonlight web HTTP 200" sh -c '[ "$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/)" = 200 ]'
 

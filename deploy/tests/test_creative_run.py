@@ -68,13 +68,10 @@ def test_incomplete_env_fails_loudly(fake_bin, env, message):
 
 def test_every_registry_file_builds_a_command_line(fake_bin):
     """Each deploy/apps/*.env, loaded as systemd would, yields a launchable command."""
-    import importlib.util
+    from appenv import parse_env_file
 
-    spec = importlib.util.spec_from_file_location("srv", DEPLOY.parent / "mcp-server" / "server.py")
-    parse = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(parse)
     for env_file in sorted((DEPLOY / "apps").glob("*.env")):
-        env = parse.parse_env_file(env_file.read_text())
+        env = parse_env_file(env_file.read_text())
         app = env_file.stem
         (fake_bin / app).write_text((fake_bin / "deckcraft").read_text())
         (fake_bin / app).chmod(0o755)

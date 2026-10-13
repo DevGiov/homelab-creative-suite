@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# creative-open APP: start a Creative Suite app (no-op if running), wait for its window and raise it.
+# One entry point for the Openbox menu, the tint2 launchers and the Sunshine app list.
+set -euo pipefail
+
+app="${1:?usage: creative-open APP}"
+export DISPLAY="${DISPLAY:-:0}"
+class="ai.storyteller.$app"
+timeout="${CREATIVE_OPEN_TIMEOUT:-40}"
+
+systemctl start "creative-app@$app.service"
+
+wid=""
+for ((i = 0; i < timeout * 4; i++)); do
+    # No --onlyvisible: a minimised window is still ours to bring back.
+    wid="$(xdotool search --class "$class" 2>/dev/null | head -1 || true)"
+    [[ -n "$wid" ]] && break
+    sleep 0.25
+done
+if [[ -z "$wid" ]]; then
+    echo "creative-open: no window for $app after ${timeout}s" >&2
+    exit 1
+fi
+xdotool windowactivate "$wid"

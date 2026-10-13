@@ -1,0 +1,18 @@
+[Unit]
+Description=tint2 panel with the Creative Suite launchers
+After=openbox-session.service
+Requires=openbox-session.service
+PartOf=openbox-session.service
+
+[Service]
+Type=simple
+User=root
+Environment=DISPLAY=:0
+# A dark root window instead of the default black, so an empty desktop still reads as a desktop.
+ExecStartPre=-/usr/bin/xsetroot -solid #16161c
+ExecStart=/usr/bin/tint2 -c /root/.config/tint2/tint2rc
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=openbox-session.service
