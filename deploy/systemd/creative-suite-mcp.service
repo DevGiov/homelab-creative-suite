@@ -6,10 +6,10 @@ Wants=openbox-session.service
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/creative-suite/mcp-server
+WorkingDirectory=/opt/creative-suite/repo/mcp-server
 Environment=DISPLAY=:0
-Environment=PATH=/opt/creative-suite/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ExecStart=/opt/creative-suite/mcp-server/.venv/bin/python3 /opt/creative-suite/mcp-server/server.py
+Environment=CREATIVE_APPS_DIR=/opt/creative-suite/repo/deploy/apps
+ExecStart=/opt/creative-suite/mcp-server/.venv/bin/python3 /opt/creative-suite/repo/mcp-server/server.py
 Restart=always
 RestartSec=3
 

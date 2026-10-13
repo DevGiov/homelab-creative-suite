@@ -30,3 +30,9 @@ Thumbs.db
 # Temporary & cache
 *.tmp
 .cache/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/

@@ -1,0 +1,15 @@
+[Unit]
+Description=PipeWire PulseAudio Server (Headless)
+After=pipewire-headless.service
+Requires=pipewire-headless.service
+
+[Service]
+Type=simple
+User=root
+Environment=XDG_RUNTIME_DIR=/run/user/0
+ExecStart=/usr/bin/pipewire-pulse
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

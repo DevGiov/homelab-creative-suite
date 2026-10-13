@@ -1,14 +1,17 @@
 [Unit]
 Description=Sunshine Streaming Server
-After=openbox-session.service pipewire-headless.service
+After=openbox-session.service pipewire-pulse-headless.service
 Requires=openbox-session.service
+Wants=pipewire-pulse-headless.service
 
 [Service]
 Type=simple
 User=root
 Environment=DISPLAY=:0
 Environment=XDG_RUNTIME_DIR=/run/user/0
+Environment=PULSE_SERVER=unix:/run/user/0/pulse/native
 ExecStartPre=/bin/sh -c 'while ! xdpyinfo -display :0 >/dev/null 2>&1; do sleep 0.5; done'
+ExecStartPre=/bin/sh -c 'for i in $(seq 20); do [ -S /run/user/0/pulse/native ] && exit 0; sleep 0.5; done; echo "pulse socket missing, starting without audio" >&2'
 ExecStart=/usr/bin/sunshine /root/.config/sunshine/sunshine.conf
 Restart=always
 RestartSec=3
