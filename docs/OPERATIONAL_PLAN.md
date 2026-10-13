@@ -192,3 +192,14 @@ Tutta la configurazione di CT 144 vive in [`deploy/`](../deploy) e si applica da
 5. **Sunshine**: pacchetto locale `2026.914.233613+homelab.cuda12.9.sm70` in `apt-mark hold` (le build ufficiali CUDA 13 non supportano la V100). Per aggiornarlo: `deploy/sunshine/build-sunshine.sh <tag>` (~1h, ~12 GB).
 6. **Build delle app Rust**: sorgenti in `/workspace/src/<app>` al commit del submodule, `CARGO_TARGET_DIR=/opt/creative-suite/build/target`, `cargo build --release -j 4 -p <app> -p <app>-cli`.
 7. **Backup pre-Fase 6**: `/workspace/backups/ct144-pre-fix-2026-10-13.tgz` (snapshot Proxmox non disponibile per via del bind mount `mp0`).
+8. **Input dello stream** (mouse/tastiera/touch/penna): Sunshine crea dispositivi uinput `libvirtualhid *` che Xorg nel CT non può hot-plugare (niente udev). Catena: host udev → `/dev/input` nel CT → `virtualhid-relay.service` ([`input-relay/relay.py`](../input-relay/relay.py)) → XTest su `:0`. Verifica: `python3 /opt/creative-suite/repo/deploy/input-e2e.py`.
+9. **Configurazione lato host Proxmox** (non gestita da `install.sh`, applicata a mano il 2026-10-13):
+   - `/etc/udev/rules.d/99-sunshine-virtualhid.rules` ← [`deploy/host/99-sunshine-virtualhid.rules`](../deploy/host/99-sunshine-virtualhid.rules) (`udevadm control --reload-rules`)
+   - righe di [`deploy/host/ct144-input.conf`](../deploy/host/ct144-input.conf) in coda a `/etc/pve/lxc/144.conf` (backup in `/root/144.conf.bak-20261013-150415`), poi riavvio del CT.
+
+### Client Moonlight nativo
+1. **Host**: aggiungere manualmente `192.168.1.189` (IP del CT). `creative.deggio.local` punta a NpmLocal e serve solo il client web: non usarlo in Moonlight.
+2. **Pairing**: Moonlight mostra un PIN → `https://192.168.1.189:47990` (certificato self-signed) → login Sunshine → scheda *PIN* → inserire PIN e nome del dispositivo.
+3. **App**: *Desktop*.
+4. **Impostazioni consigliate**: 1920×1080 (risoluzione massima del display virtuale), 60 FPS, codec **HEVC** o H.264 (la V100 non fa AV1), bitrate 20–40 Mbps in LAN, HDR off, *Optimize mouse for remote desktop* **on** (mouse assoluto), *Play audio on PC* **off** (l'audio va al client).
+5. **Porte** (se c'è un firewall in mezzo): TCP 47984, 47989, 48010; UDP 47998–48000, 48002, 48010. Il firewall Proxmox è disattivato.
