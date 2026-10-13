@@ -53,7 +53,9 @@ async def main() -> int:
         was_running = {name for name, a in status.get("apps", {}).items() if a["unit"] == "active"}
         check("session_status", status.get("ok") and apps, status)
 
-        for app in apps:
+        # Edits are app-specific; every installed app is covered by apps-e2e.py. Here: the apps that
+        # have a known harmless edit, plus the refusals and the tool surface.
+        for app in (a for a in apps if a in EDITS):
             launched = await call(session, "session_launch", app=app)
             check(f"{app}: session_launch", launched.get("ok"), launched)
             inspect = await call(session, "app_control", app=app, method="ui.inspect")
@@ -74,7 +76,7 @@ async def main() -> int:
             "app_cli absolute path": await call(session, "app_cli", app="wordcraft", action="info", args=["/etc/shadow"]),
             "app_cli action not allowed": await call(session, "app_cli", app="deckcraft", action="mcp"),
             "unknown app": await call(session, "app_control", app="photoshop", method="ui.inspect"),
-            "screenshot path param outside": await call(session, "app_control", app=apps[0], method="ui.screenshot",
+            "screenshot path param outside": await call(session, "app_control", app=next(iter(EDITS)), method="ui.screenshot",
                                                         params={"path": "/root/x.png"}),
         }
         for name, result in refused.items():
