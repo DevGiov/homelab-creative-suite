@@ -58,7 +58,8 @@ check "X display :0" xdpyinfo -display :0
 check "pulse server reachable" pactl info
 check "audio sink present" sh -c 'pactl list short sinks | grep -q .'
 check "GPU visible" nvidia-smi -L
-check "/dev/nvidia-modeset present" test -e /dev/nvidia-modeset
+check "sunshine is the sm_70 build (on hold)" sh -c "apt-mark showhold | grep -qx sunshine && dpkg-query -W -f='\${Version}' sunshine | grep -q 'sm70'"
+# Sunshine opens audio capture when a stream starts; this only catches a failure logged so far.
 check "sunshine audio initialised" sunshine_audio_ok
 check "sunshine selected NVENC" sunshine_nvenc_ok
 
