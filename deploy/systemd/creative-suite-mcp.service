@@ -1,17 +1,17 @@
 [Unit]
 Description=Creative Suite MCP Bridge Server
-After=network.target sunshine.service openbox-session.service
+After=network.target openbox-session.service
+Wants=openbox-session.service
 
 [Service]
 Type=simple
 User=root
 WorkingDirectory=/opt/creative-suite/mcp-server
-Environment=PORT=7900
-Environment=HOST=0.0.0.0
 Environment=DISPLAY=:0
+Environment=PATH=/opt/creative-suite/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ExecStart=/opt/creative-suite/mcp-server/.venv/bin/python3 /opt/creative-suite/mcp-server/server.py
 Restart=always
-RestartSec=5
+RestartSec=3
 
 [Install]
 WantedBy=multi-user.target

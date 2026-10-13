@@ -1,0 +1,15 @@
+[Unit]
+Description=PipeWire Multimedia Service (Headless)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Environment=XDG_RUNTIME_DIR=/run/user/0
+ExecStartPre=/bin/mkdir -p /run/user/0
+ExecStart=/usr/bin/pipewire
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

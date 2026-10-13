@@ -1,0 +1,17 @@
+[Unit]
+Description=Sunshine Streaming Server
+After=openbox-session.service pipewire-headless.service
+Requires=openbox-session.service
+
+[Service]
+Type=simple
+User=root
+Environment=DISPLAY=:0
+Environment=XDG_RUNTIME_DIR=/run/user/0
+ExecStartPre=/bin/sh -c 'while ! xdpyinfo -display :0 >/dev/null 2>&1; do sleep 0.5; done'
+ExecStart=/usr/bin/sunshine /root/.config/sunshine/sunshine.conf
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

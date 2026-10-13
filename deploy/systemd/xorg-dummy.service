@@ -1,0 +1,14 @@
+[Unit]
+Description=Headless Xorg Display Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Environment=DISPLAY=:0
+ExecStart=/bin/Xorg :0 -config /etc/X11/xorg.conf -noreset +extension GLX +extension RANDR +extension RENDER -logfile /var/log/Xorg.0.log
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
