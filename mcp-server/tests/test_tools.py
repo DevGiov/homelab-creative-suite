@@ -84,8 +84,9 @@ def test_launch_uses_systemd_without_shell(recorder, workspace, monkeypatch, tmp
     ports = iter([False, True])
     monkeypatch.setattr(server, "is_port_open", lambda port, host="127.0.0.1": next(ports, True))
     result = server.session_launch("deckcraft")
-    assert result == {"ok": True, "app": "deckcraft", "port": 7979}
+    assert result == {"ok": True, "app": "deckcraft", "port": 7979, "raised": True}
     assert recorder.calls[0][0] == ["systemctl", "start", "creative-app@deckcraft.service"]
+    assert recorder.calls[1][0][:3] == ["xdotool", "search", "--class"]
     assert_no_shell(recorder)
 
 
@@ -131,3 +132,28 @@ def test_screenshot_keeps_only_basename_and_uses_display_size(monkeypatch, works
     assert result["file_path"] == str(workspace / "screenshots" / "evil.png")
     assert result["resolution"] == "2560x1440"
     assert "2560x1440" in calls[1]
+
+
+def test_raise_window_activates_the_first_window_of_the_app(monkeypatch):
+    calls = []
+
+    def fake_run(args, **kwargs):
+        calls.append(args)
+        return subprocess.CompletedProcess(args, 0, "4194306\n8388610\n" if args[1] == "search" else "", "")
+
+    monkeypatch.setattr(server.subprocess, "run", fake_run)
+    assert server.raise_window(server.APPS["deckcraft"]) is True
+    assert calls == [["xdotool", "search", "--class", "ai.storyteller.deckcraft"], ["xdotool", "windowactivate", "4194306"]]
+
+
+def test_raise_window_gives_up_when_the_app_has_no_window(monkeypatch):
+    monkeypatch.setattr(server.subprocess, "run", lambda args, **kw: subprocess.CompletedProcess(args, 1, "", ""))
+    assert server.raise_window(server.APPS["deckcraft"], timeout=0.3) is False
+
+
+def test_raise_window_survives_a_missing_xdotool(monkeypatch):
+    def missing(args, **kwargs):
+        raise FileNotFoundError("xdotool")
+
+    monkeypatch.setattr(server.subprocess, "run", missing)
+    assert server.raise_window(server.APPS["deckcraft"], timeout=0.3) is False

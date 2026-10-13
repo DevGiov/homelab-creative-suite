@@ -49,6 +49,10 @@ python3 "$DEPLOY_DIR/gen-session-config.py" \
     --tint2rc /root/.config/tint2/tint2rc \
     --desktop-dir /usr/local/share/applications
 
+if [[ -x "$BIN_DIR/photocraft" ]] && ! systemctl is-active --quiet creative-app@photocraft.service; then
+    python3 "$DEPLOY_DIR/provision-photocraft.py"
+fi
+
 log "MCP bridge venv"
 [[ -x "$VENV/bin/python3" ]] || python3 -m venv "$VENV"
 "$VENV/bin/pip" install -q -r "$REPO_DIR/mcp-server/requirements.txt"

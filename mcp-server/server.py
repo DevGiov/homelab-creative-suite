@@ -307,6 +307,22 @@ def wait_for_port(app: AppSpec, timeout: float) -> bool:
     return port_is_open(app)
 
 
+def raise_window(app: AppSpec, timeout: float = 5.0) -> bool:
+    """Bring `app`'s window to the front (best effort); True if it has one."""
+    deadline = time.monotonic() + timeout
+    while True:
+        try:
+            ids = run_command(["xdotool", "search", "--class", f"ai.storyteller.{app.name}"], timeout=5).stdout.split()
+            if ids:
+                run_command(["xdotool", "windowactivate", ids[0]], timeout=5)
+                return True
+        except (OSError, subprocess.TimeoutExpired):
+            return False  # no xdotool or no display: launching the app must not fail because of it
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(0.25)
+
+
 def display_size() -> str:
     out = run_command(["xdpyinfo", "-display", DISPLAY], timeout=10).stdout
     match = re.search(r"dimensions:\s+(\d+x\d+)", out)
@@ -417,7 +433,7 @@ def session_launch(app: str, file_path: str | None = None) -> dict[str, Any]:
             raise BridgeError(f"cannot start {spec.unit}: {res.stderr.strip()}")
         if not wait_for_port(spec, LAUNCH_TIMEOUT):
             raise BridgeError(f"{app} started but its control channel did not open")
-    result: dict[str, Any] = {"ok": True, "app": app, "port": app_port(spec)}
+    result: dict[str, Any] = {"ok": True, "app": app, "port": app_port(spec), "raised": raise_window(spec)}
     if target:
         path = path_for_app(spec, target)
         if spec.open_method.startswith("engine:"):

@@ -90,6 +90,10 @@ async def check_app(session: ClientSession, app: str, was_running: bool) -> dict
         row["inspect"] = "ok"
     else:
         fail("inspect", inspect)
+    # PhotoCraft opens a modal "Switched to CPU rendering" unless the CPU preference is stored.
+    notice = (inspect.get("result") or {}).get("gpuFallbackNotice") if inspect.get("ok") else None
+    if notice:
+        fail("inspect", f"a GPU fallback dialog is open: {notice}")
 
     method, params = LISTING.get(app, ("engine.commands", {}))
     listing = await call(session, "app_control", app=app, method=method, params=params)
