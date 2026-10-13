@@ -7,8 +7,9 @@ mouse Sunshine creates (uinput -> relay -> Xorg), not by calling creative-open d
 
 1. Stops DeckCraft, clicks the first launcher of the tint2 panel and expects the app to start and
    its window to appear.
-2. Right-clicks the empty desktop and expects the Openbox menu to open.
-Needs python3-evdev, python3-xlib, xdotool. Exits non-zero if a check fails.
+2. Stops the apps, right-clicks the empty desktop and expects the Openbox menu to open at the
+   pointer, then dismisses it and restarts the apps that were running.
+Needs python3-evdev, xdotool, xwininfo (x11-utils). Exits non-zero if a check fails.
 """
 
 import subprocess
@@ -85,6 +86,22 @@ def windows(cls: str) -> list[str]:
     return sh("xdotool", "search", "--class", cls).split()
 
 
+def children() -> set[str]:
+    """Top-level windows of the X root: popup menus show up here without a name or class."""
+    out = sh("xwininfo", "-root", "-children")
+    return {tok for line in out.splitlines() if (tok := line.strip().split(" ")[0]).startswith("0x")}
+
+
+def near(window: str, x: int, y: int, slack: int = 8) -> bool:
+    info = sh("xwininfo", "-id", window)
+    fields = {k.strip(): v.strip() for k, v in (line.split(":", 1) for line in info.splitlines() if ":" in line)}
+    try:
+        wx, wy = int(fields["Absolute upper-left X"]), int(fields["Absolute upper-left Y"])
+    except (KeyError, ValueError):
+        return False
+    return abs(wx - x) <= slack and abs(wy - y) <= slack
+
+
 def main() -> int:
     mouse = Mouse()
 
@@ -105,16 +122,24 @@ def main() -> int:
           sh("systemctl", "is-active", UNIT))
     check("its window appears", wait_for(lambda: bool(windows(f"ai.storyteller.{APP}"))))
 
-    # 2. right click on an empty desktop opens the Openbox menu
-    subprocess.run(["systemctl", "stop", UNIT], check=False)
-    wait_for(lambda: not windows(f"ai.storyteller.{APP}"), 10)
-    before = set(sh("xdotool", "search", "--onlyvisible", "--class", "openbox").split())
-    mouse.click(mouse.width // 2, mouse.height // 3, e.BTN_RIGHT)
-    time.sleep(0.8)
-    after = set(sh("xdotool", "search", "--onlyvisible", "--class", "openbox").split())
-    check("right click opens the Openbox menu", len(after - before) > 0, (before, after))
-    mouse.click(mouse.width // 2, mouse.height // 3)  # click elsewhere to dismiss it
-    subprocess.run(["systemctl", "start", UNIT], check=False)  # leave the workstation as found
+    # 2. right click on an empty desktop opens the Openbox menu (maximised apps would take the click)
+    running = sh("systemctl", "list-units", "creative-app@*", "--state=active", "--no-legend").split()
+    running = [u for u in running if u.startswith("creative-app@")]
+    subprocess.run(["systemctl", "stop", "creative-app@*"], check=False)
+    wait_for(lambda: not windows("ai.storyteller"), 10)
+    mouse.click(mouse.width - 10, 10)  # make sure no menu is open
+    time.sleep(0.5)
+    before = children()
+    x, y = mouse.width // 2, mouse.height // 3
+    mouse.click(x, y, e.BTN_RIGHT)
+    time.sleep(1)
+    opened = [w for w in children() - before if near(w, x, y)]
+    check("right click opens the Openbox menu where it was clicked", bool(opened), children() - before)
+    mouse.click(mouse.width - 10, 10)  # dismiss
+    time.sleep(0.5)
+    check("a click elsewhere closes it", not [w for w in children() - before if near(w, x, y)])
+    for unit in running:  # leave the workstation as found
+        subprocess.run(["systemctl", "start", unit], check=False)
 
     print(f"\n{failures} check(s) failed" if failures else "\nall checks passed")
     return 1 if failures else 0
