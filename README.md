@@ -52,7 +52,27 @@ Le applicazioni della suite espongono un canale di controllo JSON-lines su loopb
 | `screenshot(filename, include_base64)` | Cattura del display `:0` in `/workspace/screenshots/` |
 | `workspace_files(subpath)` | Navigazione di `/workspace` (NAS) |
 
-App installate oggi: **DeckCraft** (porta 7979), **WordCraft** (7981), **GridCraft** (7983), dichiarate in [`deploy/apps/`](./deploy/apps). Tutti i percorsi sono confinati in `/workspace`; nessuna chiamata passa da una shell.
+App gestite dal bridge (una per file in [`deploy/apps/`](./deploy/apps), che è l'unica fonte di porte, argomenti e permessi):
+
+| Categoria | App | Canale di controllo |
+| :--- | :--- | :--- |
+| Documenti | DeckCraft (7979), WordCraft (7981), GridCraft (7983) | JSON-lines su loopback |
+| Documenti | PdfCraft | file di controllo con porta e token casuali |
+| Grafica | PhotoCraft (7878) | token in un file, percorsi relativi a `/workspace` |
+| Grafica | VectorCraft (7980), CADCraft (7982), DesignCraft (7984), LightCraft (7985) | JSON-lines su loopback |
+| Audio e video | SoundCraft (7801), FilmCraft (7986), EffectCraft (7987) | JSON-lines su loopback |
+
+DeckCraft e GridCraft partono al boot; le altre si avviano su richiesta (`session_launch`, menu, pannello o app Sunshine). Tutti i percorsi sono confinati in `/workspace`; nessuna chiamata passa da una shell.
+
+## 🖥️ Scegliere l'app dallo stream
+
+Dal client Moonlight (nativo o web) ci sono tre modi, tutti basati su `creative-open <app>`:
+
+1. **Lista app di Moonlight/Sunshine**: oltre a *Desktop* compare una voce per ogni app installata; la scelta avvia l'app e la porta in primo piano. "Esci dall'app" la lascia aperta.
+2. **Pannello in basso** (tint2): un pulsante per app, più la lista delle finestre aperte e l'orologio.
+3. **Menu a clic destro** sul desktop (o `Ctrl+Alt+Spazio`), raggruppato per categoria; clic centrale = elenco finestre.
+
+Il pannello, il menu e la lista Sunshine sono generati da `deploy/gen-session-config.py` solo per le app con un binario in `/opt/creative-suite/bin`.
 
 Configurazione e deploy del CT: [`deploy/`](./deploy) (`install.sh` idempotente, `smoke-test.sh` per la verifica live).
 
@@ -80,6 +100,7 @@ creative_suite/
 ├── lightcraft/               # Photo catalog e RAW in Rust
 ├── deploy/                   # Config versionata di CT 144 (systemd, Sunshine, app), install e smoke test
 ├── mcp-server/               # Bridge MCP (FastMCP) + test pytest
+├── input-relay/              # Mouse/tastiera/touch di Sunshine → Xorg (XTest) + test
 ├── moonlight-web-stream/     # WebRTC gateway client per lo streaming nel browser
 ├── pdfcraft/                 # Gestione PDF in Rust
 ├── photocraft/               # Fotoritocco raster in Rust
