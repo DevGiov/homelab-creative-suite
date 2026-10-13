@@ -17,7 +17,7 @@ def client():
 def test_health(client):
     body = client.get("/health").json()
     assert body["status"] == "ok"
-    assert body["apps"] == ["deckcraft", "gridcraft", "wordcraft"]
+    assert len(body["apps"]) == 12 and body["apps"] == sorted(body["apps"])
 
 
 def test_stale_session_id_is_not_rejected(client):

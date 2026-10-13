@@ -47,12 +47,24 @@ class BridgeError(Exception):
 # --- App registry --------------------------------------------------------------------------
 
 
+AUTH_MODES = ("none", "token-file", "control-file")
+EXEC_METHODS = ("engine.execute", "ui.command")
+PATH_MODES = ("absolute", "workspace-relative")
+
+
 @dataclass(frozen=True)
 class AppSpec:
     name: str
-    port: int
+    port: int | None  # None: the app picks a random port and publishes it in `control_file`
     cli_actions: frozenset
     open_method: str
+    label: str = ""
+    category: str = ""
+    auth: str = "none"  # none | token-file (PhotoCraft) | control-file (PdfCraft)
+    token_file: Path | None = None
+    control_file: Path | None = None
+    exec_method: str = "engine.execute"  # how app_command runs an engine command
+    path_mode: str = "absolute"  # PhotoCraft only accepts paths relative to its automation roots
 
     @property
     def unit(self) -> str:
@@ -82,17 +94,41 @@ def parse_env_file(text: str) -> dict[str, str]:
     return values
 
 
+def choice(env: dict[str, str], key: str, allowed: tuple[str, ...], default: str, where: str) -> str:
+    value = env.get(key, default)
+    if value not in allowed:
+        raise ValueError(f"{where}: {key}={value!r} is not one of {', '.join(allowed)}")
+    return value
+
+
+def spec_from_env(name: str, env: dict[str, str]) -> AppSpec:
+    auth = choice(env, "AUTH", AUTH_MODES, "none", name)
+    if auth == "token-file" and not env.get("TOKEN_FILE"):
+        raise ValueError(f"{name}: AUTH=token-file needs TOKEN_FILE")
+    if auth == "control-file" and not env.get("CONTROL_FILE"):
+        raise ValueError(f"{name}: AUTH=control-file needs CONTROL_FILE")
+    if auth != "control-file" and not env.get("CONTROL_PORT"):
+        raise ValueError(f"{name}: CONTROL_PORT is required")
+    return AppSpec(
+        name=name,
+        port=int(env["CONTROL_PORT"]) if env.get("CONTROL_PORT") else None,
+        cli_actions=frozenset(env.get("CLI_ACTIONS", "").split()),
+        open_method=env.get("OPEN_METHOD", "app.open"),
+        label=env.get("LABEL") or name.capitalize(),
+        category=env.get("CATEGORY", ""),
+        auth=auth,
+        token_file=Path(env["TOKEN_FILE"]) if env.get("TOKEN_FILE") else None,
+        control_file=Path(env["CONTROL_FILE"]) if env.get("CONTROL_FILE") else None,
+        exec_method=choice(env, "EXEC_METHOD", EXEC_METHODS, "engine.execute", name),
+        path_mode=choice(env, "PATH_MODE", PATH_MODES, "absolute", name),
+    )
+
+
 def load_apps(apps_dir: Path) -> dict[str, AppSpec]:
     apps: dict[str, AppSpec] = {}
     for env_file in sorted(apps_dir.glob("*.env")):
-        env = parse_env_file(env_file.read_text())
-        spec = AppSpec(
-            name=env_file.stem,
-            port=int(env["CONTROL_PORT"]),
-            cli_actions=frozenset(env.get("CLI_ACTIONS", "").split()),
-            open_method=env.get("OPEN_METHOD", "app.open"),
-        )
-        clash = next((a for a in apps.values() if a.port == spec.port), None)
+        spec = spec_from_env(env_file.stem, parse_env_file(env_file.read_text()))
+        clash = next((a for a in apps.values() if spec.port is not None and a.port == spec.port), None)
         if clash:
             raise ValueError(f"{spec.name} and {clash.name} share control port {spec.port}")
         apps[spec.name] = spec
@@ -141,11 +177,18 @@ def sanitize_cli_args(args: list[str]) -> list[str]:
     return clean
 
 
-def confine_params(params: dict[str, Any] | None) -> dict[str, Any]:
+def path_for_app(app: AppSpec | None, resolved: Path) -> str:
+    """Spell a confined path the way `app` wants it (PhotoCraft: relative to the workspace root)."""
+    if app is not None and app.path_mode == "workspace-relative":
+        return str(resolved.relative_to(WORKSPACE_DIR.resolve()))
+    return str(resolved)
+
+
+def confine_params(params: dict[str, Any] | None, app: AppSpec | None = None) -> dict[str, Any]:
     """Confine a top-level `path` parameter (file.open, file.saveAs, ui.screenshot, ...) to the workspace."""
     params = dict(params or {})
     if isinstance(params.get("path"), str):
-        params["path"] = str(resolve_workspace_path(params["path"]))
+        params["path"] = path_for_app(app, resolve_workspace_path(params["path"]))
     return params
 
 
@@ -160,28 +203,99 @@ def is_port_open(port: int, host: str = "127.0.0.1") -> bool:
         return s.connect_ex((host, port)) == 0
 
 
+def read_control_file(app: AppSpec) -> tuple[int, str]:
+    """(port, token) published by an app started with `--control FILE` (PdfCraft)."""
+    try:
+        data = json.loads(app.control_file.read_text())
+    except FileNotFoundError:
+        raise BridgeError(f"{app.name} is not running (no control file {app.control_file}); use session_launch") from None
+    except (OSError, ValueError) as e:
+        raise BridgeError(f"{app.name}: unusable control file {app.control_file}: {e}") from None
+    port, token = (data.get("port"), data.get("token")) if isinstance(data, dict) else (None, None)
+    if not isinstance(port, int) or not isinstance(token, str) or not token:
+        raise BridgeError(f"{app.name}: control file {app.control_file} lacks a port and a token")
+    return port, token
+
+
+def app_endpoint(app: AppSpec) -> tuple[int, str | None]:
+    """(port, token or None) to reach `app`'s control channel."""
+    if app.auth == "control-file":
+        return read_control_file(app)
+    if app.auth == "token-file":
+        try:
+            token = app.token_file.read_text().strip()
+        except FileNotFoundError:
+            raise BridgeError(f"{app.name} is not running (no token file {app.token_file}); use session_launch") from None
+        except OSError as e:
+            raise BridgeError(f"{app.name}: cannot read token file {app.token_file}: {e}") from None
+        return app.port, token
+    return app.port, None
+
+
+def app_port(app: AppSpec) -> int | None:
+    """The control port, or None when it cannot be known yet (control-file app that is not running)."""
+    try:
+        return app_endpoint(app)[0]
+    except BridgeError:
+        return None
+
+
+def port_is_open(app: AppSpec) -> bool:
+    port = app_port(app)
+    return port is not None and is_port_open(port)
+
+
+def normalise_reply(reply: dict[str, Any]) -> dict[str, Any]:
+    """One reply shape for every app: {"ok": bool, "result"?: ..., "error"?: str}.
+
+    Most apps answer {"id","ok","result"|"error"}; PdfCraft answers JSON-RPC style, with the error
+    as an object and no "ok" field.
+    """
+    reply = {k: v for k, v in reply.items() if k not in ("id", "jsonrpc")}
+    error = reply.get("error")
+    if isinstance(error, dict):
+        return {"ok": False, "error": str(error.get("message") or json.dumps(error))}
+    reply.setdefault("ok", error is None)
+    return reply
+
+
 def control_call(app: AppSpec, method: str, params: dict[str, Any] | None = None,
                  timeout: float = CONTROL_TIMEOUT) -> dict[str, Any]:
-    """One request/reply on the app's JSON-lines control channel (see apps/*/src/control_server.rs)."""
-    request_id = next(_request_ids)
-    line = json.dumps({"id": request_id, "method": method, "params": params or {}}) + "\n"
+    """One request/reply on the app's JSON-lines control channel (see apps/*/src/control_server.rs).
+
+    Apps with a token (PhotoCraft, PdfCraft) must be sent `auth {token}` as the first line of every
+    connection, so the handshake and the request share one connection.
+    """
+    port, token = app_endpoint(app)
+
+    def line(request_id, name, args):
+        return json.dumps({"id": request_id, "method": name, "params": args}) + "\n"
+
     try:
-        with socket.create_connection(("127.0.0.1", app.port), timeout=timeout) as sock:
-            sock.sendall(line.encode())
-            with sock.makefile("r", encoding="utf-8") as reader:
-                reply = reader.readline()
+        with socket.create_connection(("127.0.0.1", port), timeout=timeout) as sock:
+            reader = sock.makefile("r", encoding="utf-8")
+            if token is not None:
+                sock.sendall(line("auth", "auth", {"token": token}).encode())
+                hello = reader.readline()
+                if not hello:
+                    raise BridgeError(f"{app.name} closed the connection during authentication")
+                result = normalise_reply(json.loads(hello))
+                if not result["ok"]:
+                    raise BridgeError(f"{app.name}: authentication failed: {result.get('error', 'rejected')}")
+            sock.sendall(line(next(_request_ids), method, params or {}).encode())
+            reply = reader.readline()
     except ConnectionRefusedError:
-        raise BridgeError(f"{app.name} is not running (control port {app.port}); use session_launch") from None
+        raise BridgeError(f"{app.name} is not running (control port {port}); use session_launch") from None
     except TimeoutError:
         raise BridgeError(f"{app.name} did not answer {method!r} within {timeout:.0f}s") from None
+    except json.JSONDecodeError as e:
+        raise BridgeError(f"{app.name} sent invalid JSON: {e}") from None
     if not reply:
         raise BridgeError(f"{app.name} closed the control connection without replying")
     try:
-        result = json.loads(reply)
+        return normalise_reply(json.loads(reply))
     except json.JSONDecodeError as e:
         raise BridgeError(f"{app.name} sent invalid JSON: {e}") from None
-    result.pop("id", None)
-    return result
 
 
 def run_command(args: list[str], timeout: int = CLI_TIMEOUT, cwd: Path | None = None) -> subprocess.CompletedProcess:
@@ -196,13 +310,13 @@ def unit_state(app: AppSpec) -> str:
     return systemctl("is-active", app.unit).stdout.strip() or "unknown"
 
 
-def wait_for_port(port: int, timeout: float) -> bool:
+def wait_for_port(app: AppSpec, timeout: float) -> bool:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        if is_port_open(port):
+        if port_is_open(app):
             return True
         time.sleep(0.25)
-    return is_port_open(port)
+    return port_is_open(app)
 
 
 def display_size() -> str:
@@ -263,9 +377,13 @@ def app_command(app: str, command: str, params: dict[str, Any] | None = None) ->
       - deckcraft: 'slide.new', 'shape.insert' {"preset": "roundRect", "rect": [100,100,400,200], "text": "Hi"}
       - wordcraft: 'text.insert' {"text": "Hello"}, 'format.bold'
       - gridcraft: 'cell.set' {"cell": "B2", "input": "=SUM(A1:A9)"}
+      - pdfcraft: a registry command id such as 'view.zoomIn' (params are merged next to the id)
     """
     spec = get_app(app)
-    return control_call(spec, "engine.execute", {"command": command, "params": confine_params(params)})
+    params = confine_params(params, spec)
+    if spec.exec_method == "ui.command":
+        return control_call(spec, "ui.command", {"id": command, **params})
+    return control_call(spec, "engine.execute", {"command": command, "params": params})
 
 
 @mcp.tool()
@@ -276,7 +394,7 @@ def app_control(app: str, method: str, params: dict[str, Any] | None = None) -> 
     'engine.commands', 'ui.screenshot' {"path": "/workspace/screenshots/x.png"}, 'app.save'.
     """
     spec = get_app(app)
-    return control_call(spec, method, confine_params(params))
+    return control_call(spec, method, confine_params(params, spec))
 
 
 @mcp.tool()
@@ -305,19 +423,20 @@ def session_launch(app: str, file_path: str | None = None) -> dict[str, Any]:
     target = resolve_workspace_path(file_path) if file_path else None
     if not spec.gui_bin.exists():
         raise BridgeError(f"{app} is not installed on this workstation")
-    if not is_port_open(spec.port):
+    if not port_is_open(spec):
         res = systemctl("start", spec.unit)
         if res.returncode != 0:
             raise BridgeError(f"cannot start {spec.unit}: {res.stderr.strip()}")
-        if not wait_for_port(spec.port, LAUNCH_TIMEOUT):
-            raise BridgeError(f"{app} started but its control port {spec.port} did not open")
-    result: dict[str, Any] = {"ok": True, "app": app, "port": spec.port}
+        if not wait_for_port(spec, LAUNCH_TIMEOUT):
+            raise BridgeError(f"{app} started but its control channel did not open")
+    result: dict[str, Any] = {"ok": True, "app": app, "port": app_port(spec)}
     if target:
+        path = path_for_app(spec, target)
         if spec.open_method.startswith("engine:"):
             opened = control_call(spec, "engine.execute",
-                                  {"command": spec.open_method.removeprefix("engine:"), "params": {"path": str(target)}})
+                                  {"command": spec.open_method.removeprefix("engine:"), "params": {"path": path}})
         else:
-            opened = control_call(spec, spec.open_method, {"path": str(target)})
+            opened = control_call(spec, spec.open_method, {"path": path})
         result.update(ok=bool(opened.get("ok")), opened=opened)
     return result
 
@@ -339,8 +458,9 @@ def session_status() -> dict[str, Any]:
         name: {
             "installed": spec.gui_bin.exists(),
             "unit": unit_state(spec),
-            "port": spec.port,
-            "port_open": is_port_open(spec.port),
+            "label": spec.label,
+            "port": app_port(spec),
+            "port_open": port_is_open(spec),
         }
         for name, spec in APPS.items()
     }

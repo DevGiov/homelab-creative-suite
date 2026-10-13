@@ -10,9 +10,15 @@ User=root
 Environment=DISPLAY=:0
 Environment=XDG_RUNTIME_DIR=/run/user/0
 Environment=PULSE_SERVER=unix:/run/user/0/pulse/native
+# deploy/apps/<app>.env: control port/files, extra arguments, LP_NUM_THREADS. creative-run turns
+# them into the app's command line.
 EnvironmentFile=/opt/creative-suite/repo/deploy/apps/%i.env
+# Token and control files published by PhotoCraft / PdfCraft live here, readable by root only.
+RuntimeDirectory=creative-suite
+RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=yes
 WorkingDirectory=/workspace
-ExecStart=/opt/creative-suite/bin/%i --control ${CONTROL_PORT} $APP_ARGS
+ExecStart=/usr/local/bin/creative-run %i
 Restart=on-failure
 RestartSec=3
 

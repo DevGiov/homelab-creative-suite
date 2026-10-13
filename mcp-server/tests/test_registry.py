@@ -3,14 +3,30 @@ import pytest
 import server
 from server import load_apps, parse_env_file
 
+ALL_APPS = {"deckcraft", "wordcraft", "gridcraft", "photocraft", "vectorcraft", "cadcraft", "soundcraft",
+            "designcraft", "pdfcraft", "lightcraft", "filmcraft", "effectcraft"}
 
-def test_repo_registry_declares_the_three_apps_on_distinct_ports():
+
+def test_repo_registry_declares_all_twelve_apps_on_distinct_ports():
     apps = server.APPS
-    assert set(apps) == {"deckcraft", "wordcraft", "gridcraft"}
-    assert len({a.port for a in apps.values()}) == len(apps)
+    assert set(apps) == ALL_APPS
+    ports = [a.port for a in apps.values() if a.port is not None]
+    assert len(ports) == len(set(ports))
     assert apps["deckcraft"].port == 7979
-    assert "mcp" not in apps["deckcraft"].cli_actions  # stdio MCP would hang the bridge
     assert apps["wordcraft"].open_method == "engine:file.open"
+    assert all(a.label and a.category for a in apps.values())
+
+
+def test_no_app_exposes_a_cli_action_that_would_hang_the_bridge():
+    # `mcp`/`serve` speak stdio or block forever; the bridge runs CLIs to completion.
+    for app in server.APPS.values():
+        assert not app.cli_actions & {"mcp", "serve"}, app.name
+
+
+def test_apps_with_special_channels_are_declared():
+    photo, pdf = server.APPS["photocraft"], server.APPS["pdfcraft"]
+    assert (photo.auth, photo.path_mode, photo.port) == ("token-file", "workspace-relative", 7878)
+    assert (pdf.auth, pdf.exec_method, pdf.open_method, pdf.port) == ("control-file", "ui.command", "ui.open", None)
 
 
 def test_parse_env_file_handles_comments_quotes_and_empty_values():
@@ -29,7 +45,7 @@ def test_duplicate_ports_are_rejected(tmp_path):
 
 def test_missing_port_is_an_error(tmp_path):
     (tmp_path / "bad.env").write_text("CLI_ACTIONS=info\n")
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError, match="CONTROL_PORT"):
         load_apps(tmp_path)
 
 

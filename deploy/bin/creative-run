@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# creative-run APP: exec a Creative Suite app with the control channel its env file declares.
+# Used by creative-app@.service, which loads deploy/apps/<app>.env into the environment first,
+# so the port, token file and extra arguments live in exactly one place.
+set -euo pipefail
+
+app="${1:?usage: creative-run APP}"
+bin="${CREATIVE_BIN_DIR:-/opt/creative-suite/bin}/$app"
+args=()
+case "${AUTH:-none}" in
+    none)
+        : "${CONTROL_PORT:?$app: CONTROL_PORT is not set}"
+        args+=(--control "$CONTROL_PORT")
+        ;;
+    token-file) # PhotoCraft: fixed port, bearer token read from (or created in) a file
+        : "${CONTROL_PORT:?$app: CONTROL_PORT is not set}" "${TOKEN_FILE:?$app: TOKEN_FILE is not set}"
+        args+=(--control "$CONTROL_PORT" --control-token-file "$TOKEN_FILE")
+        ;;
+    control-file) # PdfCraft: random port and token, published as JSON in a file
+        : "${CONTROL_FILE:?$app: CONTROL_FILE is not set}"
+        args+=(--control "$CONTROL_FILE")
+        ;;
+    *)
+        echo "creative-run: $app: unknown AUTH=${AUTH}" >&2
+        exit 64
+        ;;
+esac
+
+# APP_ARGS is a plain word list (no quoting needed: paths with spaces are not used).
+# shellcheck disable=SC2086
+exec "$bin" "${args[@]}" ${APP_ARGS:-}
