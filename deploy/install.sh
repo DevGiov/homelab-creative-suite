@@ -9,7 +9,7 @@ DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(dirname "$DEPLOY_DIR")"
 BIN_DIR=/opt/creative-suite/bin
 VENV=/opt/creative-suite/mcp-server/.venv
-PACKAGES=(pulseaudio-utils locales python3-evdev python3-xlib tint2)
+PACKAGES=(pulseaudio-utils locales python3-evdev python3-xlib tint2 libasound2-plugins)
 
 log() { printf '[install] %s\n' "$*"; }
 
@@ -32,6 +32,7 @@ install -m 0644 "$DEPLOY_DIR"/systemd/*.service /etc/systemd/system/
 install -D -m 0644 "$DEPLOY_DIR/sunshine/sunshine.conf" /root/.config/sunshine/sunshine.conf
 install -D -m 0644 "$DEPLOY_DIR/moonlight/docker-compose.yaml" /opt/moonlight-web/docker-compose.yaml
 install -D -m 0644 "$DEPLOY_DIR/x11/xorg.conf" /etc/X11/xorg.conf
+install -D -m 0644 "$DEPLOY_DIR/alsa/asound.conf" /etc/asound.conf
 # pipewire-media-session only exports the "default" metadata (default sink, needed by Sunshine to
 # route app audio into its capture sink) when these modules are on; Ubuntu ships them commented out.
 mkdir -p /etc/pipewire/media-session.d
