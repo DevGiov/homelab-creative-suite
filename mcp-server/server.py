@@ -247,6 +247,9 @@ mcp = FastMCP(
         "WordCraft documents, GridCraft spreadsheets). Apps run on a virtual desktop streamed "
         "to the user; files live under /workspace."
     ),
+    # Every tool call is independent, so keep no per-client session: a bridge restart (CT reboot,
+    # deploy) must not strand MetaMCP on a session id that no longer exists ("Session not found").
+    stateless_http=True,
 )
 mcp.settings.transport_security.enable_dns_rebinding_protection = False
 

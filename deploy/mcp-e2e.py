@@ -16,10 +16,11 @@ from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 
 URL = sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:7900/mcp"
+# Edits per app, run in order. DeckCraft starts with no presentation open, so make one first.
 EDITS = {
-    "deckcraft": ("slide.new", {}),
-    "wordcraft": ("text.insert", {"text": "mcp-e2e "}),
-    "gridcraft": ("cell.set", {"cell": "A1", "input": "mcp-e2e"}),
+    "deckcraft": [("file.new", {}), ("slide.new", {})],
+    "wordcraft": [("text.insert", {"text": "mcp-e2e "})],
+    "gridcraft": [("cell.set", {"cell": "A1", "input": "mcp-e2e"})],
 }
 failures = 0
 
@@ -57,9 +58,9 @@ async def main() -> int:
             check(f"{app}: session_launch", launched.get("ok"), launched)
             inspect = await call(session, "app_control", app=app, method="ui.inspect")
             check(f"{app}: app_control ui.inspect", inspect.get("ok"), inspect)
-            command, params = EDITS[app]
-            edited = await call(session, "app_command", app=app, command=command, params=params)
-            check(f"{app}: app_command {command}", edited.get("ok"), edited)
+            for command, params in EDITS[app]:
+                edited = await call(session, "app_command", app=app, command=command, params=params)
+                check(f"{app}: app_command {command}", edited.get("ok"), edited)
             cli = await call(session, "app_cli", app=app, action="commands")
             check(f"{app}: app_cli commands", cli.get("ok") and cli.get("stdout"), cli)
 
