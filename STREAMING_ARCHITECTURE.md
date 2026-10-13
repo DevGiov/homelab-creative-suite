@@ -80,7 +80,7 @@ L'obiettivo è eseguire le applicazioni creative direttamente su Proxmox con acc
 - **Audio Virtuale**: Sunshine si collega a un sink virtuale PipeWire/PulseAudio, garantendo streaming stereo bidirezionale perfetto anche per le applicazioni DAW come SoundCraft.
 
 ### 2.2 Moonlight-Web-Stream (WebRTC Client nel Browser)
-Il repository [`moonlight-web-stream`](file:///home/deggio/Desktop/coding/progetti/homelab/creative_suite/moonlight-web-stream) funge da client Moonlight incorporato in un server web:
+Il repository [`moonlight-web-stream`](file:///home/deggio/Desktop/coding/progetti/homelab/projects/creative_suite/moonlight-web-stream) funge da client Moonlight incorporato in un server web:
 - **Traduzione di Protocollo**: Converte i flussi audio/video e gli eventi di input di Sunshine in standard **WebRTC**.
 - **Decodifica WebCodecs Client-Side**: Il browser non usa un interprete lento in software, ma richiama le API native `VideoDecoder` (WebCodecs), decodificando i frame direttamente sulla GPU locale del dispositivo che naviga la pagina.
 - **Zero Dipendenze**: Nessuna applicazione da installare sul dispositivo client: è sufficiente aprire il browser web.
@@ -247,7 +247,7 @@ Aggiungere il record locale:
 
 1. **Compilazione Locale dei Binari della Suite**:
    ```bash
-   cd /home/deggio/Desktop/coding/progetti/homelab/creative_suite
+   cd /home/deggio/Desktop/coding/progetti/homelab/projects/creative_suite
    cargo build --release -p deckcraft -p deckcraft-cli
    cargo build --release -p wordcraft -p wordcraft-cli
    cargo build --release -p photocraft -p photocraft-cli
