@@ -49,6 +49,7 @@ async def main() -> int:
 
         status = await call(session, "session_status")
         apps = [name for name, a in status.get("apps", {}).items() if a["installed"]]
+        was_running = {name for name, a in status.get("apps", {}).items() if a["unit"] == "active"}
         check("session_status", status.get("ok") and apps, status)
 
         for app in apps:
@@ -77,6 +78,11 @@ async def main() -> int:
         }
         for name, result in refused.items():
             check(f"refuses {name}", result.get("ok") is False, result)
+
+        # Leave the workstation as found: stop the apps this run started (e.g. on-demand WordCraft).
+        for app in sorted(set(apps) - was_running):
+            stopped = await call(session, "session_stop", app=app)
+            check(f"{app}: session_stop", stopped.get("ok") and stopped.get("state") != "active", stopped)
 
     print(f"\n{failures} check(s) failed" if failures else "\nall checks passed")
     return 1 if failures else 0

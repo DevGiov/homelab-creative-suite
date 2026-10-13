@@ -47,11 +47,14 @@ systemctl enable -q --now \
 
 for env_file in "$DEPLOY_DIR"/apps/*.env; do
     app="$(basename "$env_file" .env)"
-    if [[ -x "$BIN_DIR/$app" ]]; then
+    if [[ ! -x "$BIN_DIR/$app" ]]; then
+        log "app $app skipped: $BIN_DIR/$app not installed"
+    elif grep -qx 'AUTOSTART=no' "$env_file"; then
+        systemctl disable -q "creative-app@$app.service"
+        log "app $app on demand (AUTOSTART=no)"
+    else
         systemctl enable -q --now "creative-app@$app.service"
         log "app $app enabled"
-    else
-        log "app $app skipped: $BIN_DIR/$app not installed"
     fi
 done
 

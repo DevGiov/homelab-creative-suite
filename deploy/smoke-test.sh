@@ -37,10 +37,15 @@ sunshine_nvenc_ok() { sunshine_log | grep -q 'Found H.264 encoder: h264_nvenc'; 
 
 units=(xorg-dummy openbox-session pipewire-headless pipewire-media-session-headless pipewire-pulse-headless
        sunshine creative-suite-mcp docker)
-apps=()
+apps=()  # installed apps started at boot; on-demand apps (AUTOSTART=no) are not expected to run
 for env_file in "$DEPLOY_DIR"/apps/*.env; do
     app="$(basename "$env_file" .env)"
-    [[ -x "$BIN_DIR/$app" ]] && apps+=("$app")
+    [[ -x "$BIN_DIR/$app" ]] || continue
+    if grep -qx 'AUTOSTART=no' "$env_file"; then
+        printf 'SKIP  %s is on demand\n' "$app"
+    else
+        apps+=("$app")
+    fi
 done
 
 for unit in "${units[@]}"; do check "unit $unit active" systemctl is-active --quiet "$unit"; done

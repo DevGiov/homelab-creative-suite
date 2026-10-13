@@ -1,0 +1,9 @@
+[tool.ruff]
+line-length = 130
+target-version = "py310"  # CT 144 runs Ubuntu 22.04
+
+[tool.ruff.lint.isort]
+known-first-party = ["server"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
