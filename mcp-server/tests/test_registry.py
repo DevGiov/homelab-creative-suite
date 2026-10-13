@@ -52,7 +52,7 @@ def test_missing_port_is_an_error(tmp_path):
 def test_tool_schemas_expose_real_parameters():
     # FastMCP builds schemas from the signature; the error-handling decorator must preserve it.
     tools = {t.name: t for t in server.mcp._tool_manager.list_tools()}
-    assert set(tools) == {"app_command", "app_control", "app_cli", "session_launch",
+    assert set(tools) == {"app_command", "app_commands", "app_control", "app_cli", "session_launch",
                           "session_stop", "session_status", "screenshot", "workspace_files"}
     assert set(tools["app_cli"].parameters["properties"]) == {"app", "action", "args"}
     assert tools["app_cli"].parameters["required"] == ["app", "action"]

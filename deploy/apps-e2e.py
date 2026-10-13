@@ -24,7 +24,6 @@ ARGS = [a for a in sys.argv[1:] if not a.startswith("--")]
 URL = next((a.split("=", 1)[1] for a in sys.argv[1:] if a.startswith("--url=")), "http://127.0.0.1:7900/mcp")
 SETTLE = 6.0  # seconds after the control channel answers, before measuring
 WINDOW = 8.0  # seconds of CPU accounting
-LISTING = {"pdfcraft": ("ui.commands", {})}  # everyone else: engine.commands
 CLK = 100  # USER_HZ
 
 
@@ -95,9 +94,8 @@ async def check_app(session: ClientSession, app: str, was_running: bool) -> dict
     if notice:
         fail("inspect", f"a GPU fallback dialog is open: {notice}")
 
-    method, params = LISTING.get(app, ("engine.commands", {}))
-    listing = await call(session, "app_control", app=app, method=method, params=params)
-    if listing.get("ok") and listing.get("result"):
+    listing = await call(session, "app_commands", app=app, limit=3, include_disabled=True)
+    if listing.get("ok") and listing.get("commands") and listing["total"] > 0:
         row["commands"] = "ok"
     else:
         fail("commands", listing)

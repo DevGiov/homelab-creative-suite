@@ -41,6 +41,10 @@ DISPLAY = os.environ.get("DISPLAY", ":0")
 CONTROL_TIMEOUT = 65.0  # apps answer within 60s or reply with a timeout error themselves
 CLI_TIMEOUT = 60
 LAUNCH_TIMEOUT = 15.0
+MAX_CLI_OUTPUT = 16_000  # chars per stream; a raw `commands` listing is 38-300 KB
+DEFAULT_COMMAND_LIMIT = 25
+MAX_COMMAND_LIMIT = 200
+PARAMS_PREVIEW = 160
 
 
 class BridgeError(Exception):
@@ -390,12 +394,55 @@ def app_command(app: str, command: str, params: dict[str, Any] | None = None) ->
     return control_call(spec, "engine.execute", {"command": command, "params": params})
 
 
+def command_entries(reply: dict[str, Any]) -> list[dict[str, Any]]:
+    """The command list inside an engine.commands / ui.commands reply (a list, or {"commands": [...]})."""
+    result = reply.get("result")
+    if isinstance(result, dict):
+        result = result.get("commands")
+    return [c for c in result if isinstance(c, dict)] if isinstance(result, list) else []
+
+
+@mcp.tool()
+@bridged
+def app_commands(app: str, filter: str = "", limit: int = DEFAULT_COMMAND_LIMIT,
+                 include_disabled: bool = False) -> dict[str, Any]:
+    """
+    Find command ids of a RUNNING app (the ids app_command accepts). Every word of `filter` must appear,
+    case-insensitively, in the id, label or menu path: filter='rect shape', filter='save as'.
+    Returns id, label, menu, a shortened parameter doc, shortcut and enabled. Disabled commands (no
+    document open, nothing selected...) are left out unless include_disabled. Default 25 results, max 200.
+    """
+    spec = get_app(app)
+    method = "ui.commands" if spec.exec_method == "ui.command" else "engine.commands"
+    entries = command_entries(control_call(spec, method, {}))
+    words = filter.lower().split()
+    limit = max(1, min(limit, MAX_COMMAND_LIMIT))
+
+    def haystack(c: dict[str, Any]) -> str:
+        menu = c.get("menu")
+        menu = " ".join(menu) if isinstance(menu, list) else (menu or "")
+        return f"{c.get('id', '')} {c.get('label', '')} {menu}".lower()
+
+    matched = [c for c in entries if all(w in haystack(c) for w in words) and (include_disabled or c.get("enabled", True))]
+
+    def preview(text: Any) -> str:
+        text = str(text or "")
+        return text if len(text) <= PARAMS_PREVIEW else text[:PARAMS_PREVIEW] + "…"
+
+    shown = [{"id": c.get("id"), "label": c.get("label"), "menu": c.get("menu"), "params": preview(c.get("params")),
+              "shortcut": c.get("shortcut") or None, "enabled": c.get("enabled", True)} for c in matched[:limit]]
+    return {"ok": True, "app": app, "total": len(entries), "matched": len(matched), "truncated": len(matched) > limit,
+            "commands": shown}
+
+
 @mcp.tool()
 @bridged
 def app_control(app: str, method: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
     """
     Call a raw control-channel method on a running app, e.g. 'ui.inspect', 'document.inspect',
-    'engine.commands', 'ui.screenshot' {"path": "/workspace/screenshots/x.png"}, 'app.save'.
+    'ui.screenshot' {"path": "screenshots/x.png"}, 'app.save' {"path": "docs/x.xlsx"}, 'app.open'.
+    Some saves open an options dialog and wait (VectorCraft Save As .svg: 'svgOptions'): finish it with
+    'ui.dialog.confirm' {"dialog": "svgOptions"}. Use app_commands to list engine command ids.
     """
     spec = get_app(app)
     return control_call(spec, method, confine_params(params, spec))
@@ -406,17 +453,31 @@ def app_control(app: str, method: str, params: dict[str, Any] | None = None) -> 
 def app_cli(app: str, action: str, args: list[str] | None = None) -> dict[str, Any]:
     """
     Run a headless CLI operation (no window). Paths are relative to /workspace and must stay inside it.
-    Actions per app:
-      - deckcraft: info, render, convert, commands, describe, links, run
-      - wordcraft: info, text, inspect, convert, render, run, commands, parity
-      - gridcraft: info, convert, eval, cat, run, commands, functions
+    Each call is a separate engine: it only sees files on disk, never the open document of a running
+    app. Save from the live app first (app_control app.save / app_command file.saveAs), then read the
+    file here; to inspect the live document use app_control 'document.inspect' or 'ui.inspect'.
+    Output is capped (see `truncated`); to find a command id use app_commands, not the `commands` action.
+    Allowed actions come from the app's registry (deploy/apps/<app>.env; session_status lists apps), e.g.
+      - deckcraft: info render convert describe run   - wordcraft: info text inspect convert render run
+      - gridcraft: info convert eval cat run          - pdfcraft: info render text edit combine extract split check
     Example: app_cli('wordcraft', 'convert', ['docs/in.docx', 'docs/out.pdf'])
     """
     spec = get_app(app)
     if action not in spec.cli_actions:
         raise BridgeError(f"action {action!r} not allowed for {app}; allowed: {', '.join(sorted(spec.cli_actions))}")
     res = run_command([str(spec.cli_bin), action, *sanitize_cli_args(args or [])], cwd=WORKSPACE_DIR)
-    return {"ok": res.returncode == 0, "stdout": res.stdout, "stderr": res.stderr, "returncode": res.returncode}
+    out: dict[str, Any] = {"ok": res.returncode == 0, "returncode": res.returncode}
+    truncated = {}
+    for name, text in (("stdout", res.stdout), ("stderr", res.stderr)):
+        if len(text) > MAX_CLI_OUTPUT:
+            truncated[name] = len(text)
+            text = (text[:MAX_CLI_OUTPUT] + f"\n… [{len(text) - MAX_CLI_OUTPUT} more characters not shown; "
+                    "use app_commands(app, filter) to search commands, or narrow the request]")
+        out[name] = text
+    if truncated:
+        out["truncated"] = truncated
+    return {"ok": out["ok"], "stdout": out["stdout"], "stderr": out["stderr"], "returncode": out["returncode"],
+            **({"truncated": truncated} if truncated else {})}
 
 
 @mcp.tool()
@@ -463,7 +524,8 @@ def session_status() -> dict[str, Any]:
             "installed": spec.gui_bin.exists(),
             "unit": unit_state(spec),
             "label": spec.label,
-            "port": app_port(spec),
+            # control-file apps pick a random port per run: only report it while the app is up
+            "port": spec.port if spec.port is not None else (app_port(spec) if port_is_open(spec) else None),
             "port_open": port_is_open(spec),
         }
         for name, spec in APPS.items()

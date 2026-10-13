@@ -44,7 +44,7 @@ async def main() -> int:
     async with streamablehttp_client(URL) as (read, write, _), ClientSession(read, write) as session:
         await session.initialize()
         tools = {t.name for t in (await session.list_tools()).tools}
-        expected = {"app_command", "app_control", "app_cli", "session_launch", "session_stop",
+        expected = {"app_command", "app_commands", "app_control", "app_cli", "session_launch", "session_stop",
                     "session_status", "screenshot", "workspace_files"}
         check("tool list", tools == expected, tools)
 
@@ -65,6 +65,13 @@ async def main() -> int:
                 check(f"{app}: app_command {command}", edited.get("ok"), edited)
             cli = await call(session, "app_cli", app=app, action="commands")
             check(f"{app}: app_cli commands", cli.get("ok") and cli.get("stdout"), cli)
+
+        # Discovery returns a short, filtered list instead of the 40-300 KB raw listing.
+        found = await call(session, "app_commands", app="deckcraft", filter="slide", limit=5)
+        check("app_commands filters and limits", found.get("ok") and 0 < len(found["commands"]) <= 5
+              and found["total"] > found["matched"], found)
+        big = await call(session, "app_cli", app="deckcraft", action="commands")
+        check("app_cli caps a huge listing", big.get("ok") and len(big["stdout"]) < 20_000 and "truncated" in big, big.get("truncated"))
 
         shot = await call(session, "screenshot", filename="mcp-e2e.png")
         check("screenshot", shot.get("ok") and shot.get("size_bytes", 0) > 1000, shot)
