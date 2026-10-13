@@ -19,7 +19,7 @@
 │ Phase 3: Virtual Desktop, PipeWire & Sunshine NVENC    │ P0       │ Alta     │ NVENC / V100│ ✅ COMPLETATO│
 │ Phase 4: WebRTC Gateway (Moonlight-Web), DNS & NPM     │ P1       │ Media    │ WebCodecs   │ ✅ COMPLETATO│
 │ Phase 5: Registrazione MetaMCP & Live Co-Authoring     │ P1       │ Alta     │ CT 107/125  │ 🟢 CORE OK   │
-│ Phase 6: Stabilizzazione (audio, NVENC, sessione, MCP) │ P0       │ Alta     │ deploy/     │ 🚀 IN CORSO  │
+│ Phase 6: Stabilizzazione (audio, NVENC, sessione, MCP) │ P0       │ Alta     │ deploy/     │ 🟢 CORE OK   │
 └────────────────────────────────────────────────────────┴──────────┴──────────┴─────────────┴──────────────┘
 ```
 
@@ -35,7 +35,7 @@ flowchart TD
     P3["✅ Phase 3: Desktop Headless, Audio & Sunshine"]:::done
     P4["✅ Phase 4: Moonlight-Web-Stream, DNS & NPM"]:::done
     P5["🟢 Phase 5: MetaMCP & Co-Authoring (homelab-agent in sospeso)"]:::done
-    P6["🔄 Phase 6: Stabilizzazione & deploy versionato"]:::active
+    P6["✅ Phase 6: Stabilizzazione & deploy versionato"]:::done
 
     P0 --> P2
     P2 --> P3
@@ -93,7 +93,7 @@ flowchart TD
   - [x] **Configurazione Sunshine (`sunshine.conf`)**:
     - Abilitata modalità headless (`system_tray = false`).
     - Configurate credenziali Web manager protette (`admin / homelabcreative`).
-    - Verificata disponibilità encoder hardware e software (NVENC CUDA/FFmpeg su Tesla V100 e multi-threaded `libx264`).
+    - Verificata disponibilità encoder hardware e software (NVENC CUDA/FFmpeg su Tesla V100 e multi-threaded `libx264`). *Rettifica Phase 6: in realtà Sunshine ripiegava su `libx264`; NVENC funziona solo dopo la build CUDA 12.9.*
     - Creati e abilitati i servizi systemd con autostart al boot (`xorg-dummy`, `openbox-session`, `pipewire-headless`, `pipewire-media-session-headless`, `sunshine`).
   - [x] **Test Funzionalità Sunshine**: Verificato l'avvio della Web UI di Sunshine su `https://192.168.1.189:47990` con risposta HTTP 200 e API JSON funzionanti sia in locale che via rete LAN. Testato reboot persistente del container.
 
@@ -154,4 +154,23 @@ flowchart TD
   - [ ] **Discovery Dinamica & Ottimizzazioni Specifiche in `homelab-agent` (CT 125) (IN SOSPESO ⏸️)**:
     - *(Lasciato temporaneamente in sospeso su richiesta esplicita dell'utente, per consentire prima testing approfondito via MetaMCP con altri agent)*.
     - Da implementare successivamente: registrazione schemi di Rollback Saga LIFO in `tool_catalog.py`, policy profili in `mode_policy.py`, e visual feedback inline in chat.
+
+---
+
+### Phase 6: Stabilizzazione & Deploy Versionato (2026-10-13)
+* **Obiettivo:** Rendere la workstation affidabile (audio, encoding hardware, sessione persistente), sicuro il bridge MCP ed estendere la suite a WordCraft e GridCraft, con configurazione e test nel repo.
+* **Deliverable e Checklist:**
+  - [x] **Config versionata** in [`deploy/`](../deploy): unit systemd, Sunshine, Moonlight, Xorg, `apps/*.env`; `install.sh` idempotente; deploy = `git pull && deploy/install.sh` in `/opt/creative-suite/repo`.
+  - [x] **Audio**: il server Pulse di PipeWire non era mai avviato (`Couldn't connect to pulseaudio`). Nuova unit `pipewire-pulse-headless` + `PULSE_SERVER` per Sunshine → `pactl` vede *PulseAudio (on PipeWire)* e un sink.
+  - [x] **NVENC**: Sunshine 2026.914 ufficiale è compilato con CUDA 13.1 senza Volta (sm_70) → `cudaErrorInsufficientDriver` e fallback a `libx264`. Aggiornare il driver host **non** risolve. Build da sorgente con CUDA 12.9.1 ([`deploy/sunshine/build-sunshine.sh`](../deploy/sunshine/build-sunshine.sh)), pacchetto `2026.914.233613+homelab.cuda12.9.sm70` in `apt-mark hold` → `Found H.264/HEVC encoder: *_nvenc`. AV1 non supportato dalla V100.
+  - [x] **Sessione persistente**: unit template `creative-app@<app>`; DeckCraft e GridCraft partono al boot, WordCraft on demand. `apps.json` di Sunshine ripulito (output `HDMI-1` inesistente, Steam non installato).
+  - [x] **WordCraft + GridCraft** compilati (v0.3.0, commit dei submodule) e installati in `/opt/creative-suite/bin`; porte 7981 / 7983 (GridCraft ha default 7979 come DeckCraft).
+  - [x] **Bridge MCP v2** ([`mcp-server/server.py`](../mcp-server/server.py)): registry dichiarativo da `deploy/apps`, trasporto JSON-lines diretto, sessioni via systemd, niente `shell=True` (chiusa una shell injection in `creative_session_launch`), path confinati a `/workspace` (chiuso un path traversal). Tool rinominati (breaking): `app_command`, `app_control`, `app_cli`, `session_launch`, `session_stop`, `session_status`, `screenshot`, `workspace_files`.
+  - [x] **Test**: 39 test pytest in `mcp-server/tests`; [`deploy/smoke-test.sh`](../deploy/smoke-test.sh) (30 controlli live); [`deploy/mcp-e2e.py`](../deploy/mcp-e2e.py) (22 controlli via client MCP reale). Tutto verde anche **dopo `pct reboot 144`**.
+  - [x] **Rootfs 32 → 64 GB** (build CUDA/Rust).
+  - [ ] **Stream E2E manuale**: aprire `creative.deggio.local`, avviare *Desktop*, verificare audio udibile e `nvidia-smi` con sessione encoder attiva.
+* **Problemi noti:**
+  - **WordCraft 0.3.0 ridisegna in continuo** quando la finestra è visibile (0% minimizzato). Sul display dummy ogni frame passa da Mesa llvmpipe (GL software): ~380% CPU a riposo, ~100% con `LP_NUM_THREADS=1`. Mitigato con avvio on demand + 1 thread llvmpipe; da segnalare upstream (`storytold/wordcraft`).
+  - Le app egui renderizzano in **software** (llvmpipe): lo Xorg `dummy` non ha GLX accelerato. Un X server su driver NVIDIA headless eliminerebbe il costo, ma richiede `nvidia-modeset` e privilegi oltre l'LXC unprivileged attuale.
+  - Lo script upstream `linux_build.sh` ignora `--num-processors` nello step di build (`ninja` senza `-j`): con 8 GB di RAM satura il CT e mette in swap l'host.
 

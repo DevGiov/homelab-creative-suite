@@ -167,3 +167,28 @@ Questo documento definisce in dettaglio tutte le specifiche tecniche, i comandi 
    - *In sospeso su richiesta utente per consentire test preliminari con MetaMCP tramite agenti esterni*.
    - L'implementazione successiva includerà la definizione del catalogo Saga LIFO in `tool_catalog.py`, mode policy in `mode_policy.py` e inline visual previews.
 
+
+---
+
+### Fase 6: Stabilizzazione & Deploy Versionato
+Tutta la configurazione di CT 144 vive in [`deploy/`](../deploy) e si applica dal clone del meta-repo (senza submodule) in `/opt/creative-suite/repo`.
+
+1. **Deploy di una modifica** (dalla workstation, via MCP):
+   ```bash
+   git push origin main
+   exec_lxc_command(vmid=144, command="cd /opt/creative-suite/repo && git pull && deploy/install.sh")
+   # poi riavviare solo i servizi toccati, es.:
+   exec_lxc_command(vmid=144, command="systemctl restart creative-suite-mcp")   # bridge MCP
+   exec_lxc_command(vmid=144, command="systemctl restart sunshine")             # sunshine.conf / apps.json
+   ```
+2. **Verifica**:
+   ```bash
+   exec_lxc_command(vmid=144, command="/opt/creative-suite/repo/deploy/smoke-test.sh")
+   exec_lxc_command(vmid=144, command="/opt/creative-suite/mcp-server/.venv/bin/python3 /opt/creative-suite/repo/deploy/mcp-e2e.py")
+   ```
+   In locale: `cd mcp-server && pytest` (39 test, nessun CT richiesto).
+3. **Servizi** (tutti `enabled`): `xorg-dummy`, `openbox-session`, `pipewire-headless`, `pipewire-media-session-headless`, `pipewire-pulse-headless`, `sunshine`, `creative-suite-mcp`, `docker` (Moonlight-web), `creative-app@deckcraft`, `creative-app@gridcraft`. WordCraft è on demand (`AUTOSTART=no` in `deploy/apps/wordcraft.env`).
+4. **Aggiungere un'app**: compilare `<app>` e `<app>-cli` in `/opt/creative-suite/bin`, creare `deploy/apps/<app>.env` (`CONTROL_PORT` univoca, `CLI_ACTIONS`, `OPEN_METHOD`), `install.sh`, `systemctl restart creative-suite-mcp`. Il bridge la espone senza modifiche al codice.
+5. **Sunshine**: pacchetto locale `2026.914.233613+homelab.cuda12.9.sm70` in `apt-mark hold` (le build ufficiali CUDA 13 non supportano la V100). Per aggiornarlo: `deploy/sunshine/build-sunshine.sh <tag>` (~1h, ~12 GB).
+6. **Build delle app Rust**: sorgenti in `/workspace/src/<app>` al commit del submodule, `CARGO_TARGET_DIR=/opt/creative-suite/build/target`, `cargo build --release -j 4 -p <app> -p <app>-cli`.
+7. **Backup pre-Fase 6**: `/workspace/backups/ct144-pre-fix-2026-10-13.tgz` (snapshot Proxmox non disponibile per via del bind mount `mp0`).
