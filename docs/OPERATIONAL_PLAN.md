@@ -203,3 +203,15 @@ Tutta la configurazione di CT 144 vive in [`deploy/`](../deploy) e si applica da
 3. **App**: *Desktop*.
 4. **Impostazioni consigliate**: 1920×1080 (risoluzione massima del display virtuale), 60 FPS, codec **HEVC** o H.264 (la V100 non fa AV1), bitrate 20–40 Mbps in LAN, HDR off, *Optimize mouse for remote desktop* **on** (mouse assoluto), *Play audio on PC* **off** (l'audio va al client).
 5. **Porte** (se c'è un firewall in mezzo): TCP 47984, 47989, 48010; UDP 47998–48000, 48002, 48010. Il firewall Proxmox è disattivato.
+
+### Fase 7: Launcher e suite completa (12 app)
+1. **Registry**: ogni app è un file [`deploy/apps/<app>.env`](../deploy/apps) (etichetta, categoria, porta o file di controllo, auth, metodi, allowlist CLI, `AUTOSTART`, `LP_NUM_THREADS`). È l'unica fonte per l'unit systemd (`creative-run`), il bridge MCP, il menu, il pannello e Sunshine. Aggiungere un'app = compilarla in `/opt/creative-suite/bin` + un `.env` + `install.sh`.
+2. **Canali di controllo particolari**:
+   - PhotoCraft: `AUTH=token-file` (`/run/creative-suite/photocraft.token`, creato dall'app), `app.open/app.save` solo con percorsi relativi a `/workspace` (`PATH_MODE=workspace-relative`), rendering CPU come preferenza (`deploy/provision-photocraft.py`).
+   - PdfCraft: `AUTH=control-file` (`/run/creative-suite/pdfcraft.control` con porta e token casuali), comandi con `ui.command {id}`, apertura con `ui.open`.
+3. **`creative-open <app>`** ([`deploy/bin/creative-open`](../deploy/bin/creative-open)): avvia l'unit, attende la finestra `ai.storyteller.<app>` e la porta in primo piano. Usato dalle voci Sunshine, dal pannello e dal menu.
+4. **Generazione** ([`deploy/gen-session-config.py`](../deploy/gen-session-config.py), lanciato da `install.sh`): solo per le app con un binario installato produce `/root/.config/openbox/{menu,rc}.xml`, `/root/.config/sunshine/apps.json`, `/root/.config/tint2/tint2rc` e i `.desktop` in `/usr/local/share/applications`. Le finestre `ai.storyteller.*` si aprono massimizzate; scorciatoia menu `Ctrl+Alt+Spazio`.
+5. **Pannello** `creative-panel.service` (tint2, in basso, sfondo scuro): un launcher per app, task bar, orologio.
+6. **Build delle app**: `deploy/build-apps.sh [app…]` (sequenziale, `-j3`, target condiviso `/opt/creative-suite/build/target`, LTO off e 16 codegen units per stare in 8 GB, riprova con `-j2`, guardia sul disco). Lanciarlo staccato: `systemd-run --unit=craft-build --collect deploy/build-apps.sh`; log con `journalctl -u craft-build`. Pacchetti apt richiesti da FilmCraft: `libgtk-3-dev libxdo-dev`.
+7. **Audio delle app**: `/etc/asound.conf` instrada ALSA su PulseAudio (le app con `cpal` non trovavano nessuna scheda).
+8. **Verifica**: `smoke-test.sh` (salute), `mcp-e2e.py` (bridge), `apps-e2e.py` (per ogni app: lancio, finestra, `ui.inspect` autenticato, elenco comandi, screenshot, CPU a riposo), `input-e2e.py` e `panel-e2e.py` (mouse/tastiera/menu/pannello tramite i dispositivi virtuali di Sunshine). Test unitari: `mcp-server`, `input-relay`, `deploy/tests`.
