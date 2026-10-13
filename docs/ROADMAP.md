@@ -20,6 +20,7 @@
 │ Phase 4: WebRTC Gateway (Moonlight-Web), DNS & NPM     │ P1       │ Media    │ WebCodecs   │ ✅ COMPLETATO│
 │ Phase 5: Registrazione MetaMCP & Live Co-Authoring     │ P1       │ Alta     │ CT 107/125  │ 🟢 CORE OK   │
 │ Phase 6: Stabilizzazione (audio, NVENC, sessione, MCP) │ P0       │ Alta     │ deploy/     │ 🟢 CORE OK   │
+│ Phase 7: Launcher e suite completa (12 app)            │ P0       │ Media    │ deploy/     │ 🟢 CORE OK   │
 └────────────────────────────────────────────────────────┴──────────┴──────────┴─────────────┴──────────────┘
 ```
 
@@ -36,12 +37,14 @@ flowchart TD
     P4["✅ Phase 4: Moonlight-Web-Stream, DNS & NPM"]:::done
     P5["🟢 Phase 5: MetaMCP & Co-Authoring (homelab-agent in sospeso)"]:::done
     P6["✅ Phase 6: Stabilizzazione & deploy versionato"]:::done
+    P7["✅ Phase 7: Launcher e 12 app"]:::done
 
     P0 --> P2
     P2 --> P3
     P3 --> P4
     P4 --> P5
     P5 --> P6
+    P6 --> P7
 
     classDef done fill:#2e7d32,stroke:#1b5e20,color:#fff;
     classDef skipped fill:#757575,stroke:#424242,color:#fff;
@@ -177,3 +180,24 @@ flowchart TD
   - Le app egui renderizzano in **software** (llvmpipe): lo Xorg `dummy` non ha GLX accelerato. Un X server su driver NVIDIA headless eliminerebbe il costo, ma richiede `nvidia-modeset` e privilegi oltre l'LXC unprivileged attuale.
   - Lo script upstream `linux_build.sh` ignora `--num-processors` nello step di build (`ninja` senza `-j`): con 8 GB di RAM satura il CT e mette in swap l'host.
 
+
+---
+
+### Phase 7: Launcher e suite completa (2026-10-13)
+* **Obiettivo:** scegliere l'app dentro lo stream (chiudendo le finestre restava lo schermo nero) e avere tutte le app Rust installate e pilotabili.
+* **Deliverable e Checklist:**
+  - [x] **Launcher**: voce per app nella lista Sunshine/Moonlight, pannello tint2 sempre visibile (launcher + task bar + orologio) e menu a clic destro (`Ctrl+Alt+Spazio`), tutti generati da `deploy/apps/*.env` per le sole app installate; "Esci dall'app" lascia l'app aperta. Entry point unico `creative-open <app>`.
+  - [x] **9 app compilate** con `deploy/build-apps.sh` (47 min totali, nessun fallimento): CADCraft 4, DesignCraft 5, VectorCraft 5, SoundCraft 2, PdfCraft 6, PhotoCraft 5, LightCraft 7, EffectCraft 6, FilmCraft 4 minuti. ArtCraft esclusa (Tauri/React, non Rust).
+  - [x] **Bridge**: PhotoCraft (token, percorsi relativi) e PdfCraft (file di controllo con porta dinamica, risposte JSON-RPC, `ui.command`); `session_launch` porta la finestra in primo piano. 72 test.
+  - [x] **Verifica**: `apps-e2e.py` 12/12 (lancio, finestra, `ui.inspect` autenticato, elenco comandi, screenshot letti uno per uno); `panel-e2e.py` (clic reale sul pannello e clic destro) ; `mcp-e2e.py` 31/31; `input-e2e.py`; `smoke-test.sh` dopo `pct reboot 144`.
+  - [ ] **Prova manuale dal client Moonlight**: lista app con 13 voci, scelta di un'app, input e audio.
+* **Problemi trovati e risolti:**
+  - **PhotoCraft** apriva ogni volta il dialogo "Switched to CPU rendering" (`--safe-gpu` non lo evita): ora la preferenza CPU è scritta da `deploy/provision-photocraft.py`.
+  - **SoundCraft** non trovava nessuna scheda audio (ALSA): `/etc/asound.conf` → PulseAudio; compare come flusso PipeWire.
+  - **FilmCraft** richiede `libgtk-3-dev libxdo-dev` (menu bar `muda`).
+  - `mcp-e2e.py` perdeva app avviate se falliva a metà (corretto: copre solo le app con un edit noto, il resto è in `apps-e2e.py`).
+* **Problemi noti:**
+  - **WordCraft e SoundCraft** consumano ~100% di una CPU a riposo (ridisegno continuo sul GL software con `LP_NUM_THREADS=1`); tutte le altre 0%. Sono on demand.
+  - **LightCraft** usa ~300% di CPU nei primi secondi (generazione delle foto demo) e poi 0%.
+  - DeckCraft e GridCraft restano `AUTOSTART=yes` come in Phase 6: all'avvio compaiono due finestre sovrapposte. Mettere `AUTOSTART=no` in `deploy/apps/{deckcraft,gridcraft}.env` dà un desktop pulito con il pannello.
+  - Build in `/opt/creative-suite/build/target` occupa 13 GB; `cargo clean` quando serve spazio.
