@@ -42,7 +42,7 @@ def find(name: str) -> evdev.InputDevice | None:
 def send(device: evdev.InputDevice, *events: tuple[int, int, int]) -> None:
     for ev_type, code, value in events:
         device.write(ev_type, code, value)
-    device.syn()
+    device.write(e.EV_SYN, e.SYN_REPORT, 0)  # InputDevice has no syn() in python-evdev 1.4 (Ubuntu 22.04)
     time.sleep(SETTLE)
 
 
