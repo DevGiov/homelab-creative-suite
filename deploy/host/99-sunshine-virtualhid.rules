@@ -1,0 +1,4 @@
+# Proxmox host (DESKTOP-PGMTM0B): let CT 144 open the input devices Sunshine creates through
+# uinput. Unprivileged containers see host-owned nodes as "other", so the default root:input
+# 0660 hides them. Only Sunshine's libvirtualhid devices (USB vendor 1209) are opened up.
+SUBSYSTEM=="input", KERNEL=="event*", ATTRS{id/vendor}=="1209", ATTRS{name}=="libvirtualhid*", MODE="0666"

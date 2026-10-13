@@ -9,7 +9,7 @@ DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(dirname "$DEPLOY_DIR")"
 BIN_DIR=/opt/creative-suite/bin
 VENV=/opt/creative-suite/mcp-server/.venv
-PACKAGES=(pulseaudio-utils locales)
+PACKAGES=(pulseaudio-utils locales python3-evdev python3-xlib)
 
 log() { printf '[install] %s\n' "$*"; }
 
@@ -33,6 +33,11 @@ install -D -m 0644 "$DEPLOY_DIR/sunshine/sunshine.conf" /root/.config/sunshine/s
 install -D -m 0644 "$DEPLOY_DIR/sunshine/apps.json" /root/.config/sunshine/apps.json
 install -D -m 0644 "$DEPLOY_DIR/moonlight/docker-compose.yaml" /opt/moonlight-web/docker-compose.yaml
 install -D -m 0644 "$DEPLOY_DIR/x11/xorg.conf" /etc/X11/xorg.conf
+# pipewire-media-session only exports the "default" metadata (default sink, needed by Sunshine to
+# route app audio into its capture sink) when these modules are on; Ubuntu ships them commented out.
+mkdir -p /etc/pipewire/media-session.d
+sed -E 's/^(\s*)#(metadata|default-nodes|restore-stream|streams-follow-default)(\s)/\1\2\3/' \
+    /usr/share/pipewire/media-session.d/media-session.conf > /etc/pipewire/media-session.d/media-session.conf
 
 log "MCP bridge venv"
 [[ -x "$VENV/bin/python3" ]] || python3 -m venv "$VENV"
@@ -43,7 +48,7 @@ systemctl daemon-reload
 systemctl enable -q --now \
     xorg-dummy.service openbox-session.service \
     pipewire-headless.service pipewire-media-session-headless.service pipewire-pulse-headless.service \
-    sunshine.service creative-suite-mcp.service
+    sunshine.service creative-suite-mcp.service virtualhid-relay.service
 
 for env_file in "$DEPLOY_DIR"/apps/*.env; do
     app="$(basename "$env_file" .env)"

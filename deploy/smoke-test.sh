@@ -36,7 +36,7 @@ sunshine_audio_ok() { ! sunshine_log | grep -q 'Unable to initialize audio captu
 sunshine_nvenc_ok() { sunshine_log | grep -q 'Found H.264 encoder: h264_nvenc'; }
 
 units=(xorg-dummy openbox-session pipewire-headless pipewire-media-session-headless pipewire-pulse-headless
-       sunshine creative-suite-mcp docker)
+       sunshine creative-suite-mcp docker virtualhid-relay)
 apps=()  # installed apps started at boot; on-demand apps (AUTOSTART=no) are not expected to run
 for env_file in "$DEPLOY_DIR"/apps/*.env; do
     app="$(basename "$env_file" .env)"
@@ -57,6 +57,7 @@ for port in 47984 47989 47990 48010 8080 7900; do check "port $port listening" p
 check "X display :0" xdpyinfo -display :0
 check "pulse server reachable" pactl info
 check "audio sink present" sh -c 'pactl list short sinks | grep -q .'
+check "pipewire default metadata (default sink settable)" sh -c 'pw-cli ls Metadata | grep -q "metadata.name = \"default\""'
 check "GPU visible" nvidia-smi -L
 check "sunshine is the sm_70 build (on hold)" sh -c "apt-mark showhold | grep -qx sunshine && dpkg-query -W -f='\${Version}' sunshine | grep -q 'sm70'"
 # Sunshine opens audio capture when a stream starts; this only catches a failure logged so far.
