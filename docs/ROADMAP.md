@@ -221,3 +221,8 @@ Ogni tool è stato esercitato via MetaMCP con casi d'uso reali; i risultati sono
 - `app_cli` usa un motore headless **separato** (EffectCraft `info` mostrava il progetto demo, non quello aperto): ora scritto nella descrizione del tool.
 - `session_status` mostrava la porta casuale di un PdfCraft fermo: ora `null` finché non è in esecuzione.
 - VectorCraft *Salva con nome* `.svg` apre un dialogo in attesa: documentato (`ui.dialog.confirm`).
+
+### Audio di SoundCraft e selettori file (2026-10-14)
+- **SoundCraft non "non suonava"**: è una DAW e un progetto vuoto è silenzio. Verificato: importato un WAV (`file.import_audio`) + `transport.play`, il monitor del sink segna −21,7 dB medi mentre suona (silenzio −91 dB). Catena app → ALSA → Pulse → sink Sunshine → Moonlight-web → browser confermata anche dall'ascolto di un tono di prova.
+- **Selettori file ("Apri/Importa/Salva") non funzionavano in nessuna app**: `rfd` usa il portale XDG via D-Bus e nel CT non c'erano né bus di sessione né portale (l'app non mostrava nulla, quindi i file si potevano caricare solo da un agente). Aggiunti `dbus-session.service`, `xdg-desktop-portal` + backend GTK (`portals.conf default=gtk`), `DBUS_SESSION_BUS_ADDRESS` nelle app, segnalibri `/workspace` nel selettore. Verificato con [`deploy/dialog-e2e.py`](../deploy/dialog-e2e.py): Ctrl+O → selettore → percorso → DeckCraft apre `demo.pptx` (2 slide).
+- **Comportamento da sapere**: `rfd::FileDialog` è sincrono, quindi finché il selettore è aperto l'app (e il suo canale di controllo) non risponde; si chiude con Annulla/Invio o Esc.
