@@ -12,9 +12,12 @@ case "${AUTH:-none}" in
         : "${CONTROL_PORT:?$app: CONTROL_PORT is not set}"
         args+=(--control "$CONTROL_PORT")
         ;;
-    token-file) # PhotoCraft: fixed port, bearer token read from (or created in) a file
+    token-file) # fixed port, bearer token read from (or created in) a file
         : "${CONTROL_PORT:?$app: CONTROL_PORT is not set}" "${TOKEN_FILE:?$app: TOKEN_FILE is not set}"
-        args+=(--control "$CONTROL_PORT" --control-token-file "$TOKEN_FILE")
+        args+=(--control "$CONTROL_PORT")
+        if [[ "${TOKEN_ARG:-default}" != "none" ]]; then
+            args+=("${TOKEN_ARG:---control-token-file}" "$TOKEN_FILE")
+        fi
         ;;
     control-file) # PdfCraft: random port and token, published as JSON in a file
         : "${CONTROL_FILE:?$app: CONTROL_FILE is not set}"

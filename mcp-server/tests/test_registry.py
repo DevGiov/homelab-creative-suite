@@ -24,9 +24,10 @@ def test_no_app_exposes_a_cli_action_that_would_hang_the_bridge():
 
 
 def test_apps_with_special_channels_are_declared():
-    photo, pdf = server.APPS["photocraft"], server.APPS["pdfcraft"]
+    photo, pdf, word = server.APPS["photocraft"], server.APPS["pdfcraft"], server.APPS["wordcraft"]
     assert (photo.auth, photo.path_mode, photo.port) == ("token-file", "workspace-relative", 7878)
     assert (pdf.auth, pdf.exec_method, pdf.open_method, pdf.port) == ("control-file", "ui.command", "ui.open", None)
+    assert (word.auth, word.port) == ("token-file", 7981)
 
 
 def test_parse_env_file_handles_comments_quotes_and_empty_values():

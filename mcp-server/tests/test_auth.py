@@ -99,6 +99,34 @@ def test_wrong_token_is_reported_as_an_authentication_failure(tmp_path):
     assert app.requests() == []  # the real request never went out
 
 
+def test_wordcraft_authenticates_with_key(tmp_path):
+    class WordcraftAuthApp(AuthApp):
+        def _conn(self, conn):
+            authed = False
+            with conn, conn.makefile("rw", encoding="utf-8") as f:
+                for line in f:
+                    msg = json.loads(line)
+                    self.lines.append(msg)
+                    if not authed:
+                        if msg.get("method") == "auth" and msg.get("params", {}).get("key") == self.token:
+                            authed = True
+                            f.write(json.dumps(self._reply(msg, {})) + "\n")
+                        else:
+                            f.write(json.dumps(self._reply(msg, error="unauthorized")) + "\n")
+                            f.flush()
+                            return
+                    else:
+                        f.write(json.dumps(self._reply(msg, {"echo": msg["method"], "params": msg.get("params")})) + "\n")
+                    f.flush()
+
+    app = WordcraftAuthApp()
+    s = spec(app, tmp_path, name="wordcraft", auth="token-file", token_file=token_file(tmp_path))
+    result = control_call(s, "document.inspect")
+    assert result == {"ok": True, "result": {"echo": "document.inspect", "params": {}}}
+    assert [m["method"] for m in app.lines] == ["auth", "document.inspect"]
+    assert app.lines[0]["params"] == {"key": TOKEN}
+
+
 def test_missing_token_file_says_the_app_is_not_running(tmp_path):
     app = AuthApp()
     s = spec(app, tmp_path, auth="token-file", token_file=tmp_path / "absent.token")

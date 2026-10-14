@@ -267,7 +267,8 @@ def control_call(app: AppSpec, method: str, params: dict[str, Any] | None = None
         with socket.create_connection(("127.0.0.1", port), timeout=timeout) as sock:
             reader = sock.makefile("r", encoding="utf-8")
             if token is not None:
-                sock.sendall(line("auth", "auth", {"token": token}).encode())
+                auth_params = {"key": token} if app.name == "wordcraft" else {"token": token}
+                sock.sendall(line("auth", "auth", auth_params).encode())
                 hello = reader.readline()
                 if not hello:
                     raise BridgeError(f"{app.name} closed the connection during authentication")

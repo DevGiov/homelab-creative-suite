@@ -44,6 +44,12 @@ def test_token_file_app_gets_port_token_file_and_extra_args(fake_bin):
                          "--automation-read-root", "/workspace"]
 
 
+def test_token_file_app_with_token_arg_none_omits_token_arg(fake_bin):
+    res = run(fake_bin, "deckcraft", AUTH="token-file", CONTROL_PORT="7981", TOKEN_FILE="/run/x.token",
+              TOKEN_ARG="none", LP_NUM_THREADS="1")
+    assert argv(res) == ["--control", "7981"]
+
+
 def test_control_file_app_gets_the_file_not_a_port(fake_bin):
     res = run(fake_bin, "pdfcraft", AUTH="control-file", CONTROL_FILE="/run/p.control", LP_NUM_THREADS="1")
     assert argv(res) == ["--control", "/run/p.control"]

@@ -101,6 +101,7 @@ def test_launch_of_missing_binary_fails(recorder, workspace, monkeypatch, tmp_pa
 def test_launch_opens_file_with_declared_method(recorder, workspace, monkeypatch, tmp_path):
     monkeypatch.setattr(server, "BIN_DIR", tmp_path)
     (tmp_path / "wordcraft").write_text("")
+    monkeypatch.setattr(server, "app_endpoint", lambda spec: (7981, "token"))
     monkeypatch.setattr(server, "is_port_open", lambda port, host="127.0.0.1": True)
     sent = []
     monkeypatch.setattr(server, "control_call", lambda spec, method, params=None, timeout=0: sent.append((method, params)) or {"ok": True})

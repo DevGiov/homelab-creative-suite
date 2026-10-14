@@ -17,7 +17,7 @@ export HOME=/root
 export PATH="/root/.cargo/bin:$PATH"
 JOBS="${CRAFT_JOBS:-3}"       # 8 GB container: more parallel rustc jobs thrash memory
 MIN_FREE_GB=8                 # clean the shared target when the disk gets this tight
-ALL_APPS=(cadcraft designcraft vectorcraft soundcraft pdfcraft photocraft lightcraft effectcraft filmcraft)
+ALL_APPS=(cadcraft deckcraft designcraft effectcraft filmcraft gridcraft lightcraft pdfcraft photocraft soundcraft vectorcraft wordcraft)
 # apt packages some apps need beyond the base image (FilmCraft: muda's GTK menu bar + libxdo).
 APT_PACKAGES=(libgtk-3-dev libxdo-dev)
 
@@ -53,15 +53,23 @@ build() {  # build APP: cargo build with memory-friendly profile overrides, then
     install -m 0755 "$CARGO_TARGET_DIR/release/$app" "$CARGO_TARGET_DIR/release/$app-cli" "$BIN_DIR/"
 }
 
-apps=("$@")
+FORCE=0
+apps=()
+for arg in "$@"; do
+    if [[ "$arg" == "--force" || "$arg" == "-f" ]]; then
+        FORCE=1
+    else
+        apps+=("$arg")
+    fi
+done
 ((${#apps[@]})) || apps=("${ALL_APPS[@]}")
 mkdir -p "$SRC" "$BIN_DIR" "$CARGO_TARGET_DIR"
 ensure_packages
 
 failed=()
 for app in "${apps[@]}"; do
-    if [[ -x "$BIN_DIR/$app" && -x "$BIN_DIR/$app-cli" ]]; then
-        log "$app already installed, skipping (remove $BIN_DIR/$app to rebuild)"
+    if [[ $FORCE -eq 0 && -x "$BIN_DIR/$app" && -x "$BIN_DIR/$app-cli" ]]; then
+        log "$app already installed, skipping (use --force or remove $BIN_DIR/$app to rebuild)"
         continue
     fi
     if (($(free_gb) < MIN_FREE_GB)); then

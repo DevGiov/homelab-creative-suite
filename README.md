@@ -42,6 +42,8 @@ Per evitare installazioni locali separate su ogni dispositivo e consentire un pa
 
 Le applicazioni della suite espongono un canale di controllo JSON-lines su loopback (`--control <port>`) e una CLI headless. Sulla workstation (CT 144) il **bridge MCP** [`mcp-server/`](./mcp-server) le rende disponibili a tutti gli agenti tramite MetaMCP (`creative-suite__*`):
 
+👉 **Come usarli (flusso, trappole note, esempio SoundCraft)**: [`MCP_TOOLS_GUIDE.md`](./MCP_TOOLS_GUIDE.md)
+
 | Tool | Uso |
 | :--- | :--- |
 | `app_commands(app, filter, limit)` | Cerca gli id dei comandi di un'app aperta (filtro per parole, max 200 risultati): le liste complete pesano 19–314 KB |
@@ -57,7 +59,8 @@ App gestite dal bridge (una per file in [`deploy/apps/`](./deploy/apps), che è 
 
 | Categoria | App | Canale di controllo |
 | :--- | :--- | :--- |
-| Documenti | DeckCraft (7979), WordCraft (7981), GridCraft (7983) | JSON-lines su loopback |
+| Documenti | DeckCraft (7979), GridCraft (7983) | JSON-lines su loopback |
+| Documenti | WordCraft (7981) | key file in `~/.config/wordcraft` |
 | Documenti | PdfCraft | file di controllo con porta e token casuali |
 | Grafica | PhotoCraft (7878) | token in un file, percorsi relativi a `/workspace` |
 | Grafica | VectorCraft (7980), CADCraft (7982), DesignCraft (7984), LightCraft (7985) | JSON-lines su loopback |
@@ -81,6 +84,7 @@ Configurazione e deploy del CT: [`deploy/`](./deploy) (`install.sh` idempotente,
 
 ## 📋 Documentazione Operativa & Roadmap
 
+- 🤖 [**`MCP_TOOLS_GUIDE.md`**](./MCP_TOOLS_GUIDE.md) — Guida d'uso dei tool MCP `creative-suite__*` per agenti AI: flusso corretto, trappole note, esempio completo.
 - 📑 [**`docs/OPERATIONAL_PLAN.md`**](./docs/OPERATIONAL_PLAN.md) — Piano operativo dettagliato con parametri di sistema, comandi Proxmox, display headless e setup Sunshine.
 - 🎯 [**`docs/ROADMAP.md`**](./docs/ROADMAP.md) — Tracking board di avanzamento con stato milestone, checklist di lavoro e grafo delle dipendenze.
 - 📖 [**`STREAMING_ARCHITECTURE.md`**](./STREAMING_ARCHITECTURE.md) — Architettura tecnica approfondita su NVENC, WebCodecs e WebRTC.
@@ -109,5 +113,6 @@ creative_suite/
 ├── vectorcraft/              # Grafica vettoriale in Rust
 ├── wordcraft/                # Word processor in Rust
 ├── README.md                 # Questo file
+├── MCP_TOOLS_GUIDE.md        # Guida d'uso dei tool MCP per gli agenti AI
 └── STREAMING_ARCHITECTURE.md # Documentazione tecnica dettagliata su Sunshine e Moonlight
 ```
