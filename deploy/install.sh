@@ -34,6 +34,7 @@ install -D -m 0644 "$DEPLOY_DIR/moonlight/docker-compose.yaml" /opt/moonlight-we
 install -D -m 0644 "$DEPLOY_DIR/x11/xorg.conf" /etc/X11/xorg.conf
 install -D -m 0644 "$DEPLOY_DIR/alsa/asound.conf" /etc/asound.conf
 install -D -m 0644 "$DEPLOY_DIR/portal/portals.conf" /etc/xdg-desktop-portal/portals.conf
+install -D -m 0644 "$DEPLOY_DIR/portal/gtk-bookmarks" /root/.config/gtk-3.0/bookmarks
 # pipewire-media-session only exports the "default" metadata (default sink, needed by Sunshine to
 # route app audio into its capture sink) when these modules are on; Ubuntu ships them commented out.
 mkdir -p /etc/pipewire/media-session.d
