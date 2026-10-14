@@ -39,8 +39,12 @@ checkout() {  # checkout APP: clone if needed and move to the commit pinned by t
     pin="$(git -C "$REPO" ls-tree HEAD "$app" | awk '$2 == "commit" {print $3}')"
     [[ -n "$pin" ]] || { log "no submodule pin for $app in $REPO"; return 1; }
     [[ -d "$SRC/$app/.git" ]] || git clone -q "https://github.com/storytold/$app.git" "$SRC/$app"
+    git -C "$SRC/$app" remote set-url origin "https://github.com/storytold/$app.git" 2>/dev/null || true
     git -C "$SRC/$app" fetch -q --tags origin 2>/dev/null || true
-    git -C "$SRC/$app" checkout -q "$pin"
+    if ! git -C "$SRC/$app" checkout -q "$pin"; then
+        log "cannot checkout pin $pin for $app"
+        return 1
+    fi
     log "$app at $(git -C "$SRC/$app" log --oneline -1)"
 }
 
