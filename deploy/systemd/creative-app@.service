@@ -1,7 +1,8 @@
 [Unit]
 Description=Creative Suite app %i (virtual display :0)
-After=openbox-session.service
+After=openbox-session.service dbus-session.service
 Requires=openbox-session.service
+Wants=dbus-session.service
 PartOf=openbox-session.service
 
 [Service]
@@ -10,6 +11,8 @@ User=root
 Environment=DISPLAY=:0
 Environment=XDG_RUNTIME_DIR=/run/user/0
 Environment=PULSE_SERVER=unix:/run/user/0/pulse/native
+# rfd (Open/Save/Import dialogs) talks to the XDG file-chooser portal over this bus.
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/0/bus
 # deploy/apps/<app>.env: control port/files, extra arguments, LP_NUM_THREADS. creative-run turns
 # them into the app's command line.
 EnvironmentFile=/opt/creative-suite/repo/deploy/apps/%i.env

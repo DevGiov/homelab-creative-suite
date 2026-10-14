@@ -1,0 +1,17 @@
+[Unit]
+Description=D-Bus session bus for the virtual desktop (XDG portals: file choosers)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Environment=DISPLAY=:0
+Environment=XDG_RUNTIME_DIR=/run/user/0
+ExecStartPre=/bin/mkdir -p /run/user/0
+ExecStartPre=/bin/rm -f /run/user/0/bus
+ExecStart=/usr/bin/dbus-daemon --session --address=unix:path=/run/user/0/bus --nofork --nopidfile
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

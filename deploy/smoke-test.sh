@@ -36,7 +36,7 @@ sunshine_audio_ok() { ! sunshine_log | grep -q 'Unable to initialize audio captu
 sunshine_nvenc_ok() { sunshine_log | grep -q 'Found H.264 encoder: h264_nvenc'; }
 
 units=(xorg-dummy openbox-session pipewire-headless pipewire-media-session-headless pipewire-pulse-headless
-       sunshine creative-suite-mcp docker virtualhid-relay creative-panel)
+       sunshine creative-suite-mcp docker virtualhid-relay creative-panel dbus-session)
 apps=()  # installed apps started at boot; on-demand apps (AUTOSTART=no) are not expected to run
 for env_file in "$DEPLOY_DIR"/apps/*.env; do
     app="$(basename "$env_file" .env)"
@@ -59,6 +59,9 @@ check "pulse server reachable" pactl info
 check "audio sink present" sh -c 'pactl list short sinks | grep -q .'
 check "pipewire default metadata (default sink settable)" sh -c 'pw-cli ls Metadata | grep -q "metadata.name = \"default\""'
 check "GPU visible" nvidia-smi -L
+check "file chooser portal answers on the session bus" env DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/0/bus \
+    gdbus call --session --dest org.freedesktop.portal.Desktop --object-path /org/freedesktop/portal/desktop \
+    --method org.freedesktop.DBus.Properties.Get org.freedesktop.portal.FileChooser version
 check "sunshine is the sm_70 build (on hold)" sh -c "apt-mark showhold | grep -qx sunshine && dpkg-query -W -f='\${Version}' sunshine | grep -q 'sm70'"
 # Sunshine opens audio capture when a stream starts; this only catches a failure logged so far.
 check "sunshine audio initialised" sunshine_audio_ok

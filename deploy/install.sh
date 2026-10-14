@@ -9,7 +9,7 @@ DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(dirname "$DEPLOY_DIR")"
 BIN_DIR=/opt/creative-suite/bin
 VENV=/opt/creative-suite/mcp-server/.venv
-PACKAGES=(pulseaudio-utils locales python3-evdev python3-xlib tint2 libasound2-plugins)
+PACKAGES=(pulseaudio-utils locales python3-evdev python3-xlib tint2 libasound2-plugins xdg-desktop-portal xdg-desktop-portal-gtk)
 
 log() { printf '[install] %s\n' "$*"; }
 
@@ -33,6 +33,7 @@ install -D -m 0644 "$DEPLOY_DIR/sunshine/sunshine.conf" /root/.config/sunshine/s
 install -D -m 0644 "$DEPLOY_DIR/moonlight/docker-compose.yaml" /opt/moonlight-web/docker-compose.yaml
 install -D -m 0644 "$DEPLOY_DIR/x11/xorg.conf" /etc/X11/xorg.conf
 install -D -m 0644 "$DEPLOY_DIR/alsa/asound.conf" /etc/asound.conf
+install -D -m 0644 "$DEPLOY_DIR/portal/portals.conf" /etc/xdg-desktop-portal/portals.conf
 # pipewire-media-session only exports the "default" metadata (default sink, needed by Sunshine to
 # route app audio into its capture sink) when these modules are on; Ubuntu ships them commented out.
 mkdir -p /etc/pipewire/media-session.d
@@ -61,7 +62,7 @@ log "systemd units"
 systemctl daemon-reload
 systemctl enable -q --now \
     xorg-dummy.service openbox-session.service \
-    pipewire-headless.service pipewire-media-session-headless.service pipewire-pulse-headless.service \
+    dbus-session.service pipewire-headless.service pipewire-media-session-headless.service pipewire-pulse-headless.service \
     sunshine.service creative-suite-mcp.service virtualhid-relay.service creative-panel.service
 
 # Pick up the regenerated menu and rules, and the new panel launchers.
