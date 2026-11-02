@@ -1,0 +1,14 @@
+app	title	category	description	note	owner	version	sha256
+gridcraft	GridCraft	Documenti	Fogli di calcolo, come Excel.		storytold	0.15.0	be8c8ce414a7c0621fab10f907be5c14ac2ad26e9db39da18e8a0c6f1dd3a99e
+deckcraft	DeckCraft	Documenti	Presentazioni, come PowerPoint.		storytold	0.14.1	929f0e44eb99c62271320a68a50c95c8266bb03db5e2205c4eb72c33b1936c97
+wordcraft	WordCraft	Documenti	Elaboratore di testi, come Word.		storytold	0.14.0	afbb7fb0d7c0d98e76bf0f25de82eade7783abb8bb1139c02447474b051e0d99
+pdfcraft	PdfCraft	Documenti	Visualizza, unisci e compila PDF, come Acrobat.		storytold	0.17.0	393420ab35e25afc174cb6d1791098bb714099aca91cf6598b4553e57c48a835
+designcraft	DesignCraft	Documenti	Impaginazione editoriale, come InDesign.		storytold	0.16.0	1e74074b32d59185210042f303f28041b49dd3cc1a70d4d378a75ef23e4b0186
+photocraft	PhotoCraft	Grafica	Fotoritocco a livelli, come Photoshop.		storytold	0.19.0	74047f06da706c5b7c9dee77e05379a0928c52b5a7ea1e821e55c69851b0bd01
+vectorcraft	VectorCraft	Grafica	Grafica vettoriale, come Illustrator.		storytold	0.20.0	47c98c485ec149426cb055c1875e6535a88db7e91edb81f85a91596f34e9d101
+lightcraft	LightCraft	Grafica	Catalogo foto e sviluppo RAW, come Lightroom.	Sperimentale: il browser può cancellare la libreria, tieni gli originali altrove.	storytold	0.17.0	24df2d75857846ae3114293f3bef99a7b0fc83f09d329f178a76490622d389c0
+cadcraft	CADCraft	CAD	Disegno tecnico 2D, come AutoCAD.	Salva in DXF, non in DWG. Niente autosave: salva spesso.	storytold	0.16.0	db60c0b9f3b186b6ded1d293d350663a72f301295ff682f71eb2866788ae078a
+solidcraft	SolidCraft	CAD	CAD 3D parametrico, come Fusion 360.	I progetti restano nel browser: esportali per conservarli.	tangency-labs	0.30.1	acaa73a5638206cf123c56b4c0a5113c83a8bf0149dee6a66b929b00fe444403
+soundcraft	SoundCraft	Audio e video	Registrazione e mix multitraccia, come Pro Tools.	Nel browser non registra.	storytold	0.16.0	ade89cb3e1faacd5c90388fc115317f61c974d5b77a3048e36834c898f89ed08
+filmcraft	FilmCraft	Audio e video	Montaggio video, come Premiere.	Niente proxy né anteprime renderizzate.	storytold	0.16.0	79da0f879f86f4520c1721d8296dfa61220c33eb0e39bf8e58fd883388800431
+effectcraft	EffectCraft	Audio e video	Compositing e animazione, come After Effects.		storytold	0.20.0	24189ed0dc8e9b5ed893dbd65b27f4f130ce5294b4a4f6b4cd506746f916c13e
