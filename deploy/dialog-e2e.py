@@ -54,7 +54,7 @@ def wait_for(predicate, seconds: float = 10.0) -> bool:
 def main() -> int:
     spec = server.APPS[APP]
     check("bridge launches the app", server.session_launch(APP).get("ok") is True)
-    window = sh("xdotool", "search", "--class", f"ai.storyteller.{APP}").split()[0]
+    window = sh("xdotool", "search", "--class", spec.window_class).split()[0]
     for stale in dialogs():  # a previous run may have left one open
         sh("xdotool", "windowfocus", stale)
         sh("xdotool", "key", "Escape")

@@ -20,12 +20,21 @@ check() {
 
 port_open() { ss -tln | awk '{print $4}' | grep -qE "[:.]$1\$"; }
 
-control_ok() {  # control_ok PORT: read-only ui.inspect request over the JSON-lines channel
-    python3 - "$1" <<'EOF'
+control_ok() {  # control_ok PORT [TOKEN_FILE [AUTH_STYLE]]: read-only ui.inspect over the JSON-lines channel
+    python3 - "$@" <<'EOF'
 import json, socket, sys
-with socket.create_connection(("127.0.0.1", int(sys.argv[1])), timeout=30) as s:
-    s.sendall(b'{"id":1,"method":"ui.inspect","params":{}}\n')
-    reply = json.loads(s.makefile().readline())
+port, token_file, style = (sys.argv[1:] + ["", ""])[:3]
+token = open(token_file).read().strip() if token_file else None
+request = {"id": 1, "method": "ui.inspect", "params": {}}
+if token and style == "request":
+    request["token"] = token
+with socket.create_connection(("127.0.0.1", int(port)), timeout=30) as s:
+    reader = s.makefile()
+    if token and style != "request":
+        s.sendall((json.dumps({"id": 0, "method": "auth", "params": {"token": token}}) + "\n").encode())
+        reader.readline()
+    s.sendall((json.dumps(request) + "\n").encode())
+    reply = json.loads(reader.readline())
 sys.exit(0 if reply.get("ok") else f"reply: {reply}")
 EOF
 }
@@ -86,7 +95,9 @@ check "Moonlight web HTTP 200" sh -c '[ "$(curl -s -o /dev/null -w "%{http_code}
 for app in "${apps[@]}"; do
     port="$(sed -n 's/^CONTROL_PORT=//p' "$DEPLOY_DIR/apps/$app.env")"
     check "$app control port $port" port_open "$port"
-    check "$app answers ui.inspect" control_ok "$port"
+    token_file="$(sed -n 's/^TOKEN_FILE=//p' "$DEPLOY_DIR/apps/$app.env")"
+    auth_style="$(sed -n 's/^AUTH_STYLE=//p' "$DEPLOY_DIR/apps/$app.env")"
+    check "$app answers ui.inspect" control_ok "$port" "$token_file" "$auth_style"
 done
 
 echo

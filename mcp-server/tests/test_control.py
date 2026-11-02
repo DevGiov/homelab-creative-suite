@@ -1,6 +1,7 @@
 import json
 import socket
 import threading
+from dataclasses import replace
 
 import pytest
 
@@ -50,6 +51,17 @@ def test_round_trip_sends_method_params_and_strips_id():
     assert app.received[0]["method"] == "ui.inspect"
     assert app.received[0]["params"] == {"a": 1}
     assert isinstance(app.received[0]["id"], int)
+
+
+def test_request_style_carries_the_token_on_the_request_without_a_handshake(tmp_path):
+    token_file = tmp_path / "t.token"
+    token_file.write_text("secret\n")
+    app = FakeApp()
+    spec = replace(app.spec(), auth="token-file", auth_style="request", token_file=token_file)
+    assert control_call(spec, "ui.inspect")["ok"] is True
+    assert len(app.received) == 1
+    assert app.received[0]["method"] == "ui.inspect"
+    assert app.received[0]["token"] == "secret"
 
 
 def test_missing_params_are_sent_as_empty_object():

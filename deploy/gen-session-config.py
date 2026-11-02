@@ -17,12 +17,13 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from appenv import load_envs, sort_key
+from appenv import load_envs, sort_key, window_class
 
 OPEN = "/usr/local/bin/creative-open"
 RC_NS = "http://openbox.org/3.4/rc"
 MENU_NS = "http://openbox.org/3.4/menu"
-CLASS_GLOB = "ai.storyteller.*"
+CLASS_GLOBS = ("ai.storyteller.*", "io.tangencylabs.*")
+ICON_DIR = "assets/app-icon/hicolor"
 MENU_SHORTCUT = "C-A-space"
 CATEGORY_ICON = {"Documenti": "Office", "Grafica": "Graphics", "Audio e video": "AudioVideo"}
 
@@ -36,20 +37,21 @@ def installed_apps(apps_dir: Path, bin_dir: Path, icons_root: Path | None = None
             "name": name,
             "label": env.get("LABEL") or name.capitalize(),
             "category": env.get("CATEGORY") or "Altro",
-            "icon": find_icon(icons_root, name),
+            "icon": find_icon(icons_root, name, env),
+            "window_class": window_class(env, name),
             "_sort": sort_key(env, name),
         })
     apps.sort(key=lambda a: a["_sort"])
     return apps
 
 
-def find_icon(icons_root: Path | None, name: str) -> str | None:
+def find_icon(icons_root: Path | None, name: str, env: dict[str, str]) -> str | None:
     """The app's own icon from its source tree, largest size first, if the sources are present."""
     if icons_root is None:
         return None
-    base = icons_root / name / "assets" / "app-icon" / "hicolor"
+    base = icons_root / name / env.get("ICON_DIR", ICON_DIR)
     for size in ("512x512", "256x256", "128x128", "64x64", "48x48"):
-        path = base / size / "apps" / f"ai.storyteller.{name}.png"
+        path = base / size / "apps" / f"{window_class(env, name)}.png"
         if path.is_file():
             return str(path)
     return None
@@ -99,11 +101,12 @@ def openbox_rc(system_rc: str) -> str:
     if applications is None:
         applications = ET.SubElement(root, q("applications"))
     for old in applications.findall(q("application")):
-        if old.get("class") == CLASS_GLOB:
+        if old.get("class") in CLASS_GLOBS:
             applications.remove(old)
-    rule = ET.SubElement(applications, q("application"), {"class": CLASS_GLOB})
-    ET.SubElement(rule, q("maximized")).text = "yes"
-    ET.SubElement(rule, q("focus")).text = "yes"
+    for glob in CLASS_GLOBS:
+        rule = ET.SubElement(applications, q("application"), {"class": glob})
+        ET.SubElement(rule, q("maximized")).text = "yes"
+        ET.SubElement(rule, q("focus")).text = "yes"
 
     keyboard = root.find(q("keyboard"))
     if keyboard is None:
@@ -230,7 +233,7 @@ def desktop_file(app: dict) -> str:
         f"Exec={OPEN} {app['name']}",
         f"Icon={app['icon'] or 'applications-graphics'}",
         f"Categories={CATEGORY_ICON.get(app['category'], 'Utility')};",
-        f"StartupWMClass=ai.storyteller.{app['name']}",
+        f"StartupWMClass={app['window_class']}",
         "Terminal=false",
     ]
     return "\n".join(lines) + "\n"

@@ -5,7 +5,9 @@ set -euo pipefail
 
 app="${1:?usage: creative-open APP}"
 export DISPLAY="${DISPLAY:-:0}"
-class="ai.storyteller.$app"
+env_file="${CREATIVE_APPS_DIR:-/opt/creative-suite/repo/deploy/apps}/$app.env"
+class="$(sed -n 's/^APP_ID=//p' "$env_file" 2>/dev/null || true)"
+class="${class:-ai.storyteller.$app}"
 timeout="${CREATIVE_OPEN_TIMEOUT:-40}"
 
 systemctl start "creative-app@$app.service"

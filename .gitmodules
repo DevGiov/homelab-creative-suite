@@ -40,3 +40,6 @@
 [submodule "moonlight-web-stream"]
 	path = moonlight-web-stream
 	url = https://github.com/MrCreativ3001/moonlight-web-stream.git
+[submodule "solidcraft"]
+	path = solidcraft
+	url = https://github.com/tangency-labs/solidcraft.git

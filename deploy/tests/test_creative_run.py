@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -50,6 +51,23 @@ def test_token_file_app_with_token_arg_none_omits_token_arg(fake_bin):
     assert argv(res) == ["--control", "7981"]
 
 
+def test_token_env_app_gets_a_fresh_private_token_in_file_and_environment(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    app = bin_dir / "filmcraft"
+    app.write_text('#!/bin/sh\nprintf %s "$FILM_TOKEN"\n')
+    app.chmod(0o755)
+    token_file = tmp_path / "film.token"
+    env = {"AUTH": "token-file", "CONTROL_PORT": "7986", "TOKEN_FILE": str(token_file), "TOKEN_ARG": "none",
+           "TOKEN_ENV": "FILM_TOKEN"}
+    first = run(bin_dir, "filmcraft", **env)
+    assert first.returncode == 0, first.stderr
+    assert re.fullmatch(r"[0-9a-f]{64}", first.stdout)
+    assert token_file.read_text() == first.stdout
+    assert token_file.stat().st_mode & 0o077 == 0
+    assert run(bin_dir, "filmcraft", **env).stdout != first.stdout
+
+
 def test_control_file_app_gets_the_file_not_a_port(fake_bin):
     res = run(fake_bin, "pdfcraft", AUTH="control-file", CONTROL_FILE="/run/p.control", LP_NUM_THREADS="1")
     assert argv(res) == ["--control", "/run/p.control"]
@@ -72,13 +90,15 @@ def test_incomplete_env_fails_loudly(fake_bin, env, message):
     assert message in res.stderr
 
 
-def test_every_registry_file_builds_a_command_line(fake_bin):
+def test_every_registry_file_builds_a_command_line(fake_bin, tmp_path):
     """Each deploy/apps/*.env, loaded as systemd would, yields a launchable command."""
     from appenv import parse_env_file
 
     for env_file in sorted((DEPLOY / "apps").glob("*.env")):
         env = parse_env_file(env_file.read_text())
         app = env_file.stem
+        if "TOKEN_ENV" in env:  # creative-run writes this one; /run is not writable here
+            env["TOKEN_FILE"] = str(tmp_path / f"{app}.token")
         (fake_bin / app).write_text((fake_bin / "deckcraft").read_text())
         (fake_bin / app).chmod(0o755)
         res = run(fake_bin, app, **env)

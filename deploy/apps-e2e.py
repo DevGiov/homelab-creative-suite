@@ -20,6 +20,8 @@ from pathlib import Path
 from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 
+from appenv import parse_env_file, window_class
+
 ARGS = [a for a in sys.argv[1:] if not a.startswith("--")]
 URL = next((a.split("=", 1)[1] for a in sys.argv[1:] if a.startswith("--url=")), "http://127.0.0.1:7900/mcp")
 SETTLE = 6.0  # seconds after the control channel answers, before measuring
@@ -45,8 +47,12 @@ def cpu_ticks(pid: int) -> int:
     return int(fields[11]) + int(fields[12])  # utime + stime
 
 
+def app_class(app: str) -> str:
+    return window_class(parse_env_file((Path(__file__).parent / "apps" / f"{app}.env").read_text()), app)
+
+
 def has_window(app: str) -> bool:
-    res = subprocess.run(["xdotool", "search", "--class", f"ai.storyteller.{app}"], capture_output=True,
+    res = subprocess.run(["xdotool", "search", "--class", app_class(app)], capture_output=True,
                          text=True, env={"DISPLAY": ":0", "PATH": "/usr/bin:/bin"}, check=False)
     return bool(res.stdout.split())
 
@@ -82,7 +88,7 @@ async def check_app(session: ClientSession, app: str, was_running: bool) -> dict
         await asyncio.sleep(0.5)
     row["window"] = "ok" if has_window(app) else "none"
     if row["window"] != "ok":
-        fail("window", "no X window with class ai.storyteller." + app)
+        fail("window", "no X window with class " + app_class(app))
 
     inspect = await call(session, "app_control", app=app, method="ui.inspect")
     if inspect.get("ok"):

@@ -4,10 +4,10 @@ import server
 from server import load_apps, parse_env_file
 
 ALL_APPS = {"deckcraft", "wordcraft", "gridcraft", "photocraft", "vectorcraft", "cadcraft", "soundcraft",
-            "designcraft", "pdfcraft", "lightcraft", "filmcraft", "effectcraft"}
+            "designcraft", "pdfcraft", "lightcraft", "filmcraft", "effectcraft", "solidcraft"}
 
 
-def test_repo_registry_declares_all_twelve_apps_on_distinct_ports():
+def test_repo_registry_declares_all_thirteen_apps_on_distinct_ports():
     apps = server.APPS
     assert set(apps) == ALL_APPS
     ports = [a.port for a in apps.values() if a.port is not None]
@@ -28,6 +28,21 @@ def test_apps_with_special_channels_are_declared():
     assert (photo.auth, photo.path_mode, photo.port) == ("token-file", "workspace-relative", 7878)
     assert (pdf.auth, pdf.exec_method, pdf.open_method, pdf.port) == ("control-file", "ui.command", "ui.open", None)
     assert (word.auth, word.port) == ("token-file", 7981)
+    assert (server.APPS["gridcraft"].auth, server.APPS["gridcraft"].auth_style) == ("token-file", "handshake")
+    for name in ("cadcraft", "filmcraft", "solidcraft"):
+        assert (server.APPS[name].auth, server.APPS[name].auth_style) == ("token-file", "request"), name
+    assert server.APPS["solidcraft"].open_method == "engine:doc.open"
+
+
+def test_window_class_defaults_to_the_storytold_id():
+    assert server.APPS["deckcraft"].window_class == "ai.storyteller.deckcraft"
+    assert server.APPS["solidcraft"].window_class == "io.tangencylabs.solidcraft"
+
+
+def test_unknown_auth_style_is_an_error(tmp_path):
+    (tmp_path / "bad.env").write_text("CONTROL_PORT=1\nAUTH_STYLE=magic\n")
+    with pytest.raises(ValueError, match="AUTH_STYLE"):
+        load_apps(tmp_path)
 
 
 def test_parse_env_file_handles_comments_quotes_and_empty_values():

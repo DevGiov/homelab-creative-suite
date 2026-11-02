@@ -32,7 +32,7 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "deploy"))
-from appenv import parse_env_file  # shared with deploy/gen-session-config.py
+from appenv import parse_env_file, window_class  # shared with deploy/gen-session-config.py
 
 WORKSPACE_DIR = Path(os.environ.get("CREATIVE_WORKSPACE", "/workspace"))
 BIN_DIR = Path(os.environ.get("CREATIVE_BIN_DIR", "/opt/creative-suite/bin"))
@@ -55,6 +55,7 @@ class BridgeError(Exception):
 
 
 AUTH_MODES = ("none", "token-file", "control-file")
+AUTH_STYLES = ("handshake", "request")
 EXEC_METHODS = ("engine.execute", "ui.command")
 PATH_MODES = ("absolute", "workspace-relative")
 
@@ -68,14 +69,20 @@ class AppSpec:
     label: str = ""
     category: str = ""
     auth: str = "none"  # none | token-file (PhotoCraft) | control-file (PdfCraft)
+    auth_style: str = "handshake"  # handshake: `auth` first line | request: `token` on every request (CADCraft)
     token_file: Path | None = None
     control_file: Path | None = None
     exec_method: str = "engine.execute"  # how app_command runs an engine command
     path_mode: str = "absolute"  # PhotoCraft only accepts paths relative to its automation roots
+    app_id: str = ""  # X11 window class, when it is not the default ai.storyteller.<name>
 
     @property
     def unit(self) -> str:
         return f"creative-app@{self.name}.service"
+
+    @property
+    def window_class(self) -> str:
+        return window_class({"APP_ID": self.app_id}, self.name)
 
     @property
     def gui_bin(self) -> Path:
@@ -109,10 +116,12 @@ def spec_from_env(name: str, env: dict[str, str]) -> AppSpec:
         label=env.get("LABEL") or name.capitalize(),
         category=env.get("CATEGORY", ""),
         auth=auth,
+        auth_style=choice(env, "AUTH_STYLE", AUTH_STYLES, "handshake", name),
         token_file=Path(env["TOKEN_FILE"]) if env.get("TOKEN_FILE") else None,
         control_file=Path(env["CONTROL_FILE"]) if env.get("CONTROL_FILE") else None,
         exec_method=choice(env, "EXEC_METHOD", EXEC_METHODS, "engine.execute", name),
         path_mode=choice(env, "PATH_MODE", PATH_MODES, "absolute", name),
+        app_id=env.get("APP_ID", ""),
     )
 
 
@@ -255,18 +264,19 @@ def control_call(app: AppSpec, method: str, params: dict[str, Any] | None = None
                  timeout: float = CONTROL_TIMEOUT) -> dict[str, Any]:
     """One request/reply on the app's JSON-lines control channel (see apps/*/src/control_server.rs).
 
-    Apps with a token (PhotoCraft, PdfCraft) must be sent `auth {token}` as the first line of every
-    connection, so the handshake and the request share one connection.
+    Apps with a token take it in one of two ways. `handshake` (PhotoCraft, PdfCraft, GridCraft…): `auth {token}`
+    as the first line of every connection, so the handshake and the request share one connection.
+    `request` (CADCraft, FilmCraft, SolidCraft): a top-level `token` member on the request itself.
     """
     port, token = app_endpoint(app)
 
-    def line(request_id, name, args):
-        return json.dumps({"id": request_id, "method": name, "params": args}) + "\n"
+    def line(request_id, name, args, **extra):
+        return json.dumps({"id": request_id, "method": name, "params": args, **extra}) + "\n"
 
     try:
         with socket.create_connection(("127.0.0.1", port), timeout=timeout) as sock:
             reader = sock.makefile("r", encoding="utf-8")
-            if token is not None:
+            if token is not None and app.auth_style == "handshake":
                 auth_params = {"key": token} if app.name == "wordcraft" else {"token": token}
                 sock.sendall(line("auth", "auth", auth_params).encode())
                 hello = reader.readline()
@@ -275,7 +285,8 @@ def control_call(app: AppSpec, method: str, params: dict[str, Any] | None = None
                 result = normalise_reply(json.loads(hello))
                 if not result["ok"]:
                     raise BridgeError(f"{app.name}: authentication failed: {result.get('error', 'rejected')}")
-            sock.sendall(line(next(_request_ids), method, params or {}).encode())
+            extra = {"token": token} if token is not None and app.auth_style == "request" else {}
+            sock.sendall(line(next(_request_ids), method, params or {}, **extra).encode())
             reply = reader.readline()
     except ConnectionRefusedError:
         raise BridgeError(f"{app.name} is not running (control port {port}); use session_launch") from None
@@ -317,7 +328,7 @@ def raise_window(app: AppSpec, timeout: float = 5.0) -> bool:
     deadline = time.monotonic() + timeout
     while True:
         try:
-            ids = run_command(["xdotool", "search", "--class", f"ai.storyteller.{app.name}"], timeout=5).stdout.split()
+            ids = run_command(["xdotool", "search", "--class", app.window_class], timeout=5).stdout.split()
             if ids:
                 run_command(["xdotool", "windowactivate", ids[0]], timeout=5)
                 return True

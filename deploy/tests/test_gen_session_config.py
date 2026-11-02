@@ -60,6 +60,20 @@ def test_icon_is_taken_from_the_app_sources_when_present(three, tmp_path):
     assert apps["photocraft"]["icon"] is None
 
 
+def test_app_id_and_icon_dir_override_the_defaults(tmp_path):
+    apps_dir, bins = tmp_path / "apps", tmp_path / "bin"
+    apps_dir.mkdir()
+    bins.mkdir()
+    (apps_dir / "solidcraft.env").write_text("LABEL=SolidCraft\nCONTROL_PORT=1\nAPP_ID=io.tangencylabs.solidcraft\nICON_DIR=assets/x\n")
+    (bins / "solidcraft").write_text("")
+    icon = tmp_path / "src" / "solidcraft" / "assets" / "x" / "512x512" / "apps"
+    icon.mkdir(parents=True)
+    (icon / "io.tangencylabs.solidcraft.png").write_bytes(b"png")
+    app = gen.installed_apps(apps_dir, bins, tmp_path / "src")[0]
+    assert app["icon"].endswith("io.tangencylabs.solidcraft.png")
+    assert "StartupWMClass=io.tangencylabs.solidcraft" in gen.desktop_file(app)
+
+
 def test_openbox_menu_is_valid_and_lists_installed_apps(three):
     xml = gen.openbox_menu(gen.installed_apps(*three))
     root = ET.fromstring(xml)
@@ -83,7 +97,7 @@ def test_rc_adds_window_rule_and_shortcut_and_keeps_the_rest():
     root = ET.fromstring(out)
     q = lambda t: f"{{{gen.RC_NS}}}{t}"
     classes = [a.get("class") for a in root.find(q("applications"))]
-    assert classes == ["Other", gen.CLASS_GLOB]
+    assert classes == ["Other", *gen.CLASS_GLOBS]
     rule = root.find(q("applications"))[1]
     assert rule.find(q("maximized")).text == "yes"
     keys = [k.get("key") for k in root.find(q("keyboard"))]
@@ -147,6 +161,6 @@ def test_repo_registry_produces_one_entry_per_app_in_three_categories(tmp_path):
     for env in (DEPLOY / "apps").glob("*.env"):
         (bins / env.stem).write_text("")
     apps = gen.installed_apps(DEPLOY / "apps", bins)
-    assert len(apps) == 12
-    assert {k: len(v) for k, v in gen.by_category(apps).items()} == {"Documenti": 4, "Grafica": 5, "Audio e video": 3}
-    assert len({a["label"] for a in apps}) == 12
+    assert len(apps) == 13
+    assert {k: len(v) for k, v in gen.by_category(apps).items()} == {"Documenti": 4, "Grafica": 6, "Audio e video": 3}
+    assert len({a["label"] for a in apps}) == 13

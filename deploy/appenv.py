@@ -28,6 +28,11 @@ def load_envs(apps_dir: Path) -> dict[str, dict[str, str]]:
     return {f.stem: parse_env_file(f.read_text()) for f in sorted(apps_dir.glob("*.env"))}
 
 
+def window_class(env: dict[str, str], name: str) -> str:
+    """The app's X11 window class: its APP_ID, or the id every storytold app uses."""
+    return env.get("APP_ID") or f"ai.storyteller.{name}"
+
+
 def sort_key(env: dict[str, str], name: str) -> tuple[int, str, str]:
     """Order apps by category (documents, graphics, audio/video, then others), then label."""
     category = env.get("CATEGORY", "")

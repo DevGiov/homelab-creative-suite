@@ -17,7 +17,7 @@ export HOME=/root
 export PATH="/root/.cargo/bin:$PATH"
 JOBS="${CRAFT_JOBS:-3}"       # 8 GB container: more parallel rustc jobs thrash memory
 MIN_FREE_GB=8                 # clean the shared target when the disk gets this tight
-ALL_APPS=(cadcraft deckcraft designcraft effectcraft filmcraft gridcraft lightcraft pdfcraft photocraft soundcraft vectorcraft wordcraft)
+ALL_APPS=(cadcraft deckcraft designcraft effectcraft filmcraft gridcraft lightcraft pdfcraft photocraft solidcraft soundcraft vectorcraft wordcraft)
 # apt packages some apps need beyond the base image (FilmCraft: muda's GTK menu bar + libxdo).
 APT_PACKAGES=(libgtk-3-dev libxdo-dev)
 
@@ -35,11 +35,12 @@ ensure_packages() {
 }
 
 checkout() {  # checkout APP: clone if needed and move to the commit pinned by the meta-repo
-    local app="$1" pin
+    local app="$1" pin url
     pin="$(git -C "$REPO" ls-tree HEAD "$app" | awk '$2 == "commit" {print $3}')"
     [[ -n "$pin" ]] || { log "no submodule pin for $app in $REPO"; return 1; }
-    [[ -d "$SRC/$app/.git" ]] || git clone -q "https://github.com/storytold/$app.git" "$SRC/$app"
-    git -C "$SRC/$app" remote set-url origin "https://github.com/storytold/$app.git" 2>/dev/null || true
+    url="$(git -C "$REPO" config -f .gitmodules "submodule.$app.url")"
+    [[ -d "$SRC/$app/.git" ]] || git clone -q "$url" "$SRC/$app"
+    git -C "$SRC/$app" remote set-url origin "$url" 2>/dev/null || true
     git -C "$SRC/$app" fetch -q --tags origin 2>/dev/null || true
     git -C "$SRC/$app" reset --hard -q HEAD 2>/dev/null || true
     if ! git -C "$SRC/$app" checkout -q "$pin"; then

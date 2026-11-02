@@ -15,6 +15,10 @@ case "${AUTH:-none}" in
     token-file) # fixed port, bearer token read from (or created in) a file
         : "${CONTROL_PORT:?$app: CONTROL_PORT is not set}" "${TOKEN_FILE:?$app: TOKEN_FILE is not set}"
         args+=(--control "$CONTROL_PORT")
+        if [[ -n "${TOKEN_ENV:-}" ]]; then # FilmCraft: the launcher makes the token, the app reads it from its env
+            (umask 077 && od -An -N32 -tx1 /dev/urandom | tr -d ' \n' > "$TOKEN_FILE")
+            export "$TOKEN_ENV=$(< "$TOKEN_FILE")"
+        fi
         if [[ "${TOKEN_ARG:-default}" != "none" ]]; then
             args+=("${TOKEN_ARG:---control-token-file}" "$TOKEN_FILE")
         fi
