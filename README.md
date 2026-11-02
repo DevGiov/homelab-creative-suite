@@ -6,7 +6,7 @@ Suite completa di strumenti creativi open-source integrati per l'ecosistema Home
 
 ## 🎨 Applicazioni della Suite
 
-La suite comprende 13 applicativi specializzati:
+La suite comprende 14 applicativi specializzati:
 
 | Applicazione | Equivalente Noti | Descrizione | Directory |
 | :--- | :--- | :--- | :--- |
@@ -21,6 +21,7 @@ La suite comprende 13 applicativi specializzati:
 | **SoundCraft** | Pro Tools / DAW | Digital audio workstation, registrazione, mix multitraccia, effetti, MIDI. | [`soundcraft/`](./soundcraft) |
 | **LightCraft** | Adobe Lightroom | Catalogazione fotografica, sviluppo RAW, color grading non distruttivo. | [`lightcraft/`](./lightcraft) |
 | **CADCraft**   | AutoCAD         | Disegno tecnico 2D, comandi da riga di comando, snap geometrici, layer. | [`cadcraft/`](./cadcraft) |
+| **SolidCraft** | Fusion 360 / SolidWorks | CAD 3D parametrico: schizzi, estrusioni, booleane, assiemi, STEP/3MF. | [`solidcraft/`](./solidcraft) |
 | **PdfCraft**   | Adobe Acrobat   | Visualizzazione, combinazione, divisione, compilazione e sicurezza PDF. | [`pdfcraft/`](./pdfcraft) |
 | **ArtCraft**   | AI Generative Studio | Staging 2D e 3D, compositing e orchestrazione di modelli di diffusione. | [`artcraft/`](./artcraft) |
 
@@ -59,12 +60,15 @@ App gestite dal bridge (una per file in [`deploy/apps/`](./deploy/apps), che è 
 
 | Categoria | App | Canale di controllo |
 | :--- | :--- | :--- |
-| Documenti | DeckCraft (7979), GridCraft (7983) | JSON-lines su loopback |
+| Documenti | DeckCraft (7979) | JSON-lines su loopback |
+| Documenti | GridCraft (7983) | token in un file scritto dall'app (handshake `auth`) |
 | Documenti | WordCraft (7981) | key file in `~/.config/wordcraft` |
 | Documenti | PdfCraft | file di controllo con porta e token casuali |
 | Grafica | PhotoCraft (7878) | token in un file, percorsi relativi a `/workspace` |
-| Grafica | VectorCraft (7980), CADCraft (7982), DesignCraft (7984), LightCraft (7985) | JSON-lines su loopback |
-| Audio e video | SoundCraft (7801), FilmCraft (7986), EffectCraft (7987) | JSON-lines su loopback |
+| Grafica | VectorCraft (7980), DesignCraft (7984), LightCraft (7985) | JSON-lines su loopback |
+| Grafica | CADCraft (7982), SolidCraft (7988) | token in un file scritto dall'app, inviato in ogni richiesta |
+| Audio e video | SoundCraft (7801), EffectCraft (7987) | JSON-lines su loopback |
+| Audio e video | FilmCraft (7986) | token generato da `creative-run` a ogni avvio, inviato in ogni richiesta |
 
 DeckCraft e GridCraft partono al boot; le altre si avviano su richiesta (`session_launch`, menu, pannello o app Sunshine). Tutti i percorsi sono confinati in `/workspace`; nessuna chiamata passa da una shell.
 
@@ -109,6 +113,7 @@ creative_suite/
 ├── moonlight-web-stream/     # WebRTC gateway client per lo streaming nel browser
 ├── pdfcraft/                 # Gestione PDF in Rust
 ├── photocraft/               # Fotoritocco raster in Rust
+├── solidcraft/               # CAD 3D parametrico in Rust (tangency-labs)
 ├── soundcraft/               # DAW audio in Rust
 ├── vectorcraft/              # Grafica vettoriale in Rust
 ├── wordcraft/                # Word processor in Rust
