@@ -201,6 +201,10 @@ flowchart TD
   - **LightCraft** usa ~300% di CPU nei primi secondi (generazione delle foto demo) e poi 0%.
   - DeckCraft e GridCraft restano `AUTOSTART=yes` come in Phase 6: all'avvio compaiono due finestre sovrapposte. Mettere `AUTOSTART=no` in `deploy/apps/{deckcraft,gridcraft}.env` dà un desktop pulito con il pannello.
   - Build in `/opt/creative-suite/build/target` occupa 13 GB; `cargo clean` quando serve spazio.
+* **Aggiornamento del 2026-11-02 (tutte le app a upstream, aggiunta SolidCraft, 13 app gestite dal bridge):**
+  - Build completa `build-apps.sh --force` in 1 h 44 min, nessun errore (SolidCraft 21 min, prima build). `smoke-test`, `mcp-e2e` e `apps-e2e` passano su tutte le app, salvo i due controlli su Moonlight Web: il container è fermo dal 24 ottobre, estraneo all'aggiornamento.
+  - Upstream ha introdotto token di controllo: GridCraft (handshake `auth`), CADCraft e SolidCraft (`token` in ogni richiesta, `AUTH_STYLE=request`), FilmCraft (come sopra, e il listener resta chiuso senza `FILMCRAFT_CONTROL_TOKEN`, generato da `creative-run` con `TOKEN_ENV`). Dopo un aggiornamento dei pin, controllare `docs/control-protocol.md` delle app.
+  - SolidCraft sul display virtuale usa llvmpipe (`ui.inspect` → `adapter`), anche se `solidcraft-cli gpu` trova la Tesla V100 in Vulkan: la CLI headless renderizza su GPU, la finestra no.
 
 ### Collaudo dei tool MCP (2026-10-14)
 Ogni tool è stato esercitato via MetaMCP con casi d'uso reali; i risultati sono verificati sui file prodotti, non solo sull'`ok` del tool.
