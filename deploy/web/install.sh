@@ -36,7 +36,7 @@ fetch_release() {  # fetch_release APP OWNER VERSION SHA256 DEST
     if [[ -d "$site/snippets" && -d "$site/app" && ! -e "$site/app/snippets" ]]; then
         cp -r "$site/snippets" "$site/app/snippets"
     fi
-    find "$site" -type f \( -name '*.wasm' -o -name '*.js' \) -size +1k -exec gzip -k -9 {} +
+    find "$site" -type f \( -name '*.wasm' -o -name '*.js' \) -size +1k -exec gzip -kf -9 {} +
     chmod -R a+rX "$site"
     mv "$site" "$dest"
 }

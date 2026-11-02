@@ -39,6 +39,21 @@ Per evitare installazioni locali separate su ogni dispositivo e consentire un pa
 
 ---
 
+## 🌐 Suite nel Browser (WASM)
+
+Oltre allo streaming, 13 app girano direttamente nel browser del dispositivo: pagina iniziale su `https://apps.lan.devgiov.com`, ogni app su `https://<app>.lan.devgiov.com`. Solo in LAN e Tailscale, mai esposte su Internet.
+
+| | Moonlight | WASM |
+| :--- | :--- | :--- |
+| **Dove gira** | CT 144, con la V100 | Sul dispositivo che la apre |
+| **File** | `/workspace` sul NAS | Storage del browser, file aperti a mano, download |
+| **Agenti MCP** | Sì | No: il bridge usa TCP, che il browser non può esporre |
+| **Funzioni** | Complete | Ridotte per alcune app (note sulla pagina iniziale) |
+
+Il deploy è in [`deploy/web/`](./deploy/web): nginx su CT 151 serve i bundle delle release upstream, fissati per versione e SHA-256 in `apps.tsv`. Ogni app ha il suo sottodominio perché usano gli stessi nomi in `localStorage` e OPFS. Le versioni seguono le release, quindi possono restare indietro rispetto alle app native, fissate a commit più recenti. ArtCraft non è inclusa.
+
+---
+
 ## 🤖 Integrazione Agenti & Co-Authoring Live
 
 Le applicazioni della suite espongono un canale di controllo JSON-lines su loopback (`--control <port>`) e una CLI headless. Sulla workstation (CT 144) il **bridge MCP** [`mcp-server/`](./mcp-server) le rende disponibili a tutti gli agenti tramite MetaMCP (`creative-suite__*`):

@@ -55,7 +55,7 @@ L'obiettivo è eseguire le applicazioni creative direttamente su Proxmox con acc
                                              ▼
                        ┌───────────────────────────────────────────┐
                        │ CT 121: NpmLocal (192.168.1.143) / Tailscale│
-                       │ Dominio: https://creative.deggio.local    │
+                       │ Dominio: https://creative.lan.devgiov.com │
                        └─────────────────────┬─────────────────────┘
                                              │
              ┌───────────────────────────────┴───────────────────────────────┐
@@ -211,17 +211,16 @@ services:
 
 ### 6.1 Nginx Proxy Manager Locale (CT 121 - NpmLocal)
 Configurazione dell'host di proxy inverso:
-- **Domain Names**: `creative.deggio.local`
+- **Domain Names**: `creative.lan.devgiov.com` (resta anche `creative.deggio.local`, solo HTTP, quindi senza contesto sicuro)
 - **Forward Hostname / IP**: `192.168.1.189`
 - **Forward Port**: `8080`
 - **Cache Assets**: Off
 - **Block Common Exploits**: On
 - **Websockets Support**: **ON** *(Obbligatorio per la segnalazione WebRTC e i token di controllo).*
-- **SSL**: Certificato SSL locale abilitato con Force SSL *(Necessario per consentire al browser di attivare le API WebCodecs e la Keyboard Lock API).*
+- **SSL**: Certificato Let's Encrypt `*.lan.devgiov.com` con Force SSL *(Necessario per consentire al browser di attivare le API WebCodecs e la Keyboard Lock API).*
 
 ### 6.2 DNS Locale Pi-Hole (CT 114)
-Aggiungere il record locale:
-- `creative.deggio.local` ➔ `192.168.1.143` (IP di NpmLocal CT 121).
+Tutti i nomi `*.lan.devgiov.com` risolvono verso `192.168.1.143` (NpmLocal CT 121), solo sul DNS locale: vedi `docs/services/dns/README.md` nel repo homelab.
 
 ### 6.3 Accesso Remoto Fuori Casa
 - **Tailscale**: Il container `creative-workstation` (o il Proxmox host) fa parte della Tailnet, rendendo la suite accessibile in streaming sicuro senza dover aprire porte sul router di casa.
@@ -258,7 +257,7 @@ Aggiungere il record locale:
 3. **Avvio di Moonlight-Web-Stream**:
    - Avviare il container `moonlight-web` ed eseguire il pairing con Sunshine tramite PIN.
 4. **Verifica Accesso e Co-Authoring**:
-   - Connettersi via browser su `https://creative.deggio.local`.
+   - Connettersi via browser su `https://creative.lan.devgiov.com`.
    - Avviare `deckcraft --control 7979 &`.
    - Lanciare da terminale o da `homelab-agent`:
      ```bash
