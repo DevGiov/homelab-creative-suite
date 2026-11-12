@@ -7,7 +7,8 @@ services:
     restart: unless-stopped
     network_mode: host
     environment:
-      - WEBRTC_NAT_1TO1_HOST=192.168.1.189
+      # Address the clients reach the workstation at. deploy/install.sh writes it to the .env next to this file
+      - WEBRTC_NAT_1TO1_HOST=${WORKSTATION_ADDRESS:?set WORKSTATION_ADDRESS in the .env next to this file}
       - WEBRTC_PORT_RANGE=40000:40100
       - BIND_ADDRESS=0.0.0.0:8080
     volumes:

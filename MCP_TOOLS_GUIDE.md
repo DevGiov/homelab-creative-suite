@@ -10,7 +10,7 @@ Questo file spiega il **flusso corretto e le trappole note**; il riferimento com
 
 ## 1. Come sono esposti i tool
 
-Il bridge (CT 144, porta 7900) è aggregato da MetaMCP (`http://192.168.1.175:12008/metamcp/MetaMCP/mcp`, nessuna API key richiesta).
+Il bridge gira sulla workstation (porta 7900) e di norma è raggiunto tramite un aggregatore MCP come MetaMCP: l'indirizzo dipende dall'installazione.
 I 9 tool hanno prefisso `creative-suite__`:
 
 | Client | Come si chiamano |

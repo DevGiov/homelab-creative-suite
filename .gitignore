@@ -36,3 +36,6 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .venv/
+
+# Instructions that are true for one installation only (see AGENTS.md)
+*.local.md

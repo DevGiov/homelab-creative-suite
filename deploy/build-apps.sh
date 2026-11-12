@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the Creative Suite Rust apps on CT 144 and install them into /opt/creative-suite/bin.
+# Build the Creative Suite Rust apps on the workstation container and install them into /opt/creative-suite/bin.
 #
 #   deploy/build-apps.sh [app ...]      # default: every app below, lightest first
 #

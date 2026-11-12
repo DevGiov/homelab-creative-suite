@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
-# Install the creative-workstation (CT 144) configuration from this repo.
-# Idempotent: run as root on the container after every `git pull`.
+# Install the creative workstation configuration from this repo.
+# Idempotent: run as root on the workstation container after every `git pull`.
 #   /opt/creative-suite/repo/deploy/install.sh
+# Needs /etc/creative-suite/site.env (from deploy/site.example.env): the address and names of this workstation.
 # Running services are not restarted; restart the ones whose config changed.
 set -euo pipefail
 
 DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(dirname "$DEPLOY_DIR")"
+# Before any change: stops here when the site settings are missing.
+WORKSTATION_ADDRESS="$(python3 "$DEPLOY_DIR/siteconf.py" get WORKSTATION_ADDRESS)"
 BIN_DIR=/opt/creative-suite/bin
 VENV=/opt/creative-suite/mcp-server/.venv
 PACKAGES=(pulseaudio-utils locales python3-evdev python3-xlib tint2 libasound2-plugins xdg-desktop-portal xdg-desktop-portal-gtk)
@@ -29,8 +32,10 @@ fi
 
 log "config files"
 install -m 0644 "$DEPLOY_DIR"/systemd/*.service /etc/systemd/system/
-install -D -m 0644 "$DEPLOY_DIR/sunshine/sunshine.conf" /root/.config/sunshine/sunshine.conf
+install -d -m 0755 /root/.config/sunshine
+python3 "$DEPLOY_DIR/siteconf.py" sunshine-conf "$DEPLOY_DIR/sunshine/sunshine.conf" /root/.config/sunshine/sunshine.conf
 install -D -m 0644 "$DEPLOY_DIR/moonlight/docker-compose.yaml" /opt/moonlight-web/docker-compose.yaml
+printf 'WORKSTATION_ADDRESS=%s\n' "$WORKSTATION_ADDRESS" > /opt/moonlight-web/.env
 install -D -m 0644 "$DEPLOY_DIR/x11/xorg.conf" /etc/X11/xorg.conf
 install -D -m 0644 "$DEPLOY_DIR/alsa/asound.conf" /etc/asound.conf
 install -D -m 0644 "$DEPLOY_DIR/portal/portals.conf" /etc/xdg-desktop-portal/portals.conf

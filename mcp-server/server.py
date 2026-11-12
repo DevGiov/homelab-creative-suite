@@ -2,7 +2,7 @@
 """
 Creative Suite MCP Bridge Server for Proxmox Homelab.
 
-Exposes the Creative Suite apps running on the virtual display :0 of CT 144
+Exposes the Creative Suite apps running on the virtual display :0 of the workstation container
 over Streamable HTTP (/mcp) and SSE (/sse) on port 7900.
 
 Apps are declared in deploy/apps/<app>.env (shared with creative-app@.service).

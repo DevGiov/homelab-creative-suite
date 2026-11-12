@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install free, open-source CLAP and VST3 plugins for SoundCraft on CT 144.
+# Install free, open-source CLAP and VST3 plugins for SoundCraft on the workstation container.
 #
 #   deploy/plugins/install-plugins.sh            # idempotent: skips what is already installed
 #

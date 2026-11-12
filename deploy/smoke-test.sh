@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Live health check of the creative-workstation (CT 144). Run as root on the container.
+# Live health check of the creative workstation. Run as root on the container.
 # Prints PASS/FAIL per check and exits non-zero if anything failed.
 set -uo pipefail
 

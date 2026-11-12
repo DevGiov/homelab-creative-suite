@@ -2,7 +2,7 @@
 """Manifest tool for the browser (WASM) suite: deploy/web/apps.tsv is the one source of its apps.
 
   webapps.py list               app, owner, version and sha256 of each app, for install.sh
-  webapps.py landing OUT        write the landing page
+  webapps.py landing OUT DOMAIN write the landing page; apps are linked as https://<app>.DOMAIN
   webapps.py bump [app ...]     move apps to their latest upstream release (rewrites apps.tsv)
 """
 import csv
@@ -14,7 +14,6 @@ from pathlib import Path
 
 MANIFEST = Path(__file__).resolve().parent / "apps.tsv"
 FIELDS = ("app", "title", "category", "description", "note", "owner", "version", "sha256")
-DOMAIN = "lan.devgiov.com"
 CATEGORIES = ("Documenti", "Grafica", "CAD", "Audio e video")
 
 PAGE = """<!doctype html>
@@ -73,7 +72,7 @@ def write_manifest(rows, path=MANIFEST):
         writer.writerows(rows)
 
 
-def render_landing(rows):
+def render_landing(rows, domain):
     sections = []
     for category in CATEGORIES:
         cards = []
@@ -82,14 +81,14 @@ def render_landing(rows):
                 continue
             note = f'<p class="note">{html.escape(row["note"])}</p>' if row["note"] else ""
             cards.append(
-                f'<a class="card" href="https://{html.escape(row["app"])}.{DOMAIN}/">'
+                f'<a class="card" href="https://{html.escape(row["app"])}.{html.escape(domain)}/">'
                 f'<div class="name">{html.escape(row["title"])}'
                 f'<span class="version">{html.escape(row["version"])}</span></div>'
                 f'<p>{html.escape(row["description"])}</p>{note}</a>'
             )
         if cards:
             sections.append(f'<h2>{html.escape(category)}</h2>\n<div class="grid">\n' + "\n".join(cards) + "\n</div>")
-    return PAGE.format(domain=DOMAIN, sections="\n".join(sections))
+    return PAGE.format(domain=html.escape(domain), sections="\n".join(sections))
 
 
 def web_asset(release, app):
@@ -121,8 +120,8 @@ def main(argv):
     if command == "list":
         for row in read_manifest():
             print(row["app"], row["owner"], row["version"], row["sha256"])
-    elif command == "landing" and len(argv) == 3:
-        Path(argv[2]).write_text(render_landing(read_manifest()), encoding="utf-8")
+    elif command == "landing" and len(argv) == 4:
+        Path(argv[2]).write_text(render_landing(read_manifest(), argv[3]), encoding="utf-8")
     elif command == "bump":
         bump(set(argv[2:]))
     else:

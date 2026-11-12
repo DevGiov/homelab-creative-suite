@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Install the browser (WASM) suite from deploy/web/apps.tsv on its container (CT 151).
+# Install the browser (WASM) suite from deploy/web/apps.tsv on its container.
 # Idempotent: run as root after every `git pull`.
 #   /opt/creative-suite/repo/deploy/web/install.sh
+# Needs /etc/creative-suite/site.env (from deploy/site.example.env): WEB_DOMAIN, the domain the apps are served under.
 # Only apps whose version changed are downloaded; each switches atomically to its new release.
 set -euo pipefail
 
@@ -41,6 +42,9 @@ fetch_release() {  # fetch_release APP OWNER VERSION SHA256 DEST
     mv "$site" "$dest"
 }
 
+# Before any change to the site: stops here when the site settings are missing.
+WEB_DOMAIN="$(python3 "$WEB_DIR/../siteconf.py" get WEB_DOMAIN)"
+
 mkdir -p "$RELEASES" "$SITE_ROOT"
 failed=()
 while read -r app owner version sha256; do
@@ -57,10 +61,11 @@ done < <(python3 "$WEB_DIR/webapps.py" list)
 
 log "landing page"
 mkdir -p "$SITE_ROOT/apps"
-python3 "$WEB_DIR/webapps.py" landing "$SITE_ROOT/apps/index.html"
+python3 "$WEB_DIR/webapps.py" landing "$SITE_ROOT/apps/index.html" "$WEB_DOMAIN"
 
 log "nginx"
-install -m 0644 "$WEB_DIR/nginx.conf" /etc/nginx/sites-available/craft-web
+python3 "$WEB_DIR/../siteconf.py" nginx-conf "$WEB_DIR/nginx.conf" /etc/nginx/sites-available/craft-web
+chmod 0644 /etc/nginx/sites-available/craft-web
 ln -sfn /etc/nginx/sites-available/craft-web /etc/nginx/sites-enabled/craft-web
 rm -f /etc/nginx/sites-enabled/default
 nginx -t -q

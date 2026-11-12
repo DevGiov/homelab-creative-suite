@@ -5,7 +5,7 @@ set -uo pipefail
 
 WEB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SITE_ROOT=/var/www/apps
-DOMAIN=lan.devgiov.com
+DOMAIN="$(python3 "$WEB_DIR/../siteconf.py" get WEB_DOMAIN)" || exit 1
 failures=0
 
 check() {  # check DESCRIPTION COMMAND...

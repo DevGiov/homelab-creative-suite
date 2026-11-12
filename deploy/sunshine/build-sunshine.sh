@@ -6,7 +6,7 @@
 # Sunshine silently falls back to libx264. Sunshine's CMake adds sm_70 by itself whenever the
 # CUDA compiler is < 13 (cmake/compile_definitions/linux.cmake), so only the toolkit changes.
 #
-# Run as root on CT 144. Takes ~1h (CUDA download + build) and needs ~12 GB of disk.
+# Run as root on the workstation container. Takes ~1h (CUDA download + build) and needs ~12 GB of disk.
 #   deploy/sunshine/build-sunshine.sh [git-ref]   # default: the ref below
 # Produces /opt/creative-suite/packages/sunshine_<version>+homelab.cuda12.9.sm70_amd64.deb,
 # installs it and puts the package on hold so apt does not bring back an official build.

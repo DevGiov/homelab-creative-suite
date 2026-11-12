@@ -41,22 +41,22 @@ Per evitare installazioni locali separate su ogni dispositivo e consentire un pa
 
 ## 🌐 Suite nel Browser (WASM)
 
-Oltre allo streaming, 13 app girano direttamente nel browser del dispositivo: pagina iniziale su `https://apps.lan.devgiov.com`, ogni app su `https://<app>.lan.devgiov.com`. Solo in LAN e Tailscale, mai esposte su Internet.
+Oltre allo streaming, 13 app girano direttamente nel browser del dispositivo: pagina iniziale su `https://apps.<dominio>`, ogni app su `https://<app>.<dominio>` (il dominio è un'impostazione dell'installazione, `WEB_DOMAIN`). Pensata per la sola rete locale, non per Internet.
 
 | | Moonlight | WASM |
 | :--- | :--- | :--- |
-| **Dove gira** | CT 144, con la V100 | Sul dispositivo che la apre |
+| **Dove gira** | Sulla workstation, con la sua GPU | Sul dispositivo che la apre |
 | **File** | `/workspace` sul NAS | Storage del browser, file aperti a mano, download |
 | **Agenti MCP** | Sì | No: il bridge usa TCP, che il browser non può esporre |
 | **Funzioni** | Complete | Ridotte per alcune app (note sulla pagina iniziale) |
 
-Il deploy è in [`deploy/web/`](./deploy/web): nginx su CT 151 serve i bundle delle release upstream, fissati per versione e SHA-256 in `apps.tsv`. Ogni app ha il suo sottodominio perché usano gli stessi nomi in `localStorage` e OPFS. Le versioni seguono le release, quindi possono restare indietro rispetto alle app native, fissate a commit più recenti. ArtCraft non è inclusa.
+Il deploy è in [`deploy/web/`](./deploy/web): nginx, su un container suo, serve i bundle delle release upstream, fissati per versione e SHA-256 in `apps.tsv`. Ogni app ha il suo sottodominio perché usano gli stessi nomi in `localStorage` e OPFS. Le versioni seguono le release, quindi possono restare indietro rispetto alle app native, fissate a commit più recenti. ArtCraft non è inclusa.
 
 ---
 
 ## 🤖 Integrazione Agenti & Co-Authoring Live
 
-Le applicazioni della suite espongono un canale di controllo JSON-lines su loopback (`--control <port>`) e una CLI headless. Sulla workstation (CT 144) il **bridge MCP** [`mcp-server/`](./mcp-server) le rende disponibili a tutti gli agenti tramite MetaMCP (`creative-suite__*`):
+Le applicazioni della suite espongono un canale di controllo JSON-lines su loopback (`--control <port>`) e una CLI headless. Sulla workstation il **bridge MCP** [`mcp-server/`](./mcp-server) le rende disponibili a tutti gli agenti tramite MetaMCP (`creative-suite__*`):
 
 👉 **Come usarli (flusso, trappole note, esempio SoundCraft)**: [`MCP_TOOLS_GUIDE.md`](./MCP_TOOLS_GUIDE.md)
 
@@ -122,7 +122,7 @@ creative_suite/
 ├── filmcraft/                # Video editor NLE in Rust
 ├── gridcraft/                # Fogli di calcolo in Rust
 ├── lightcraft/               # Photo catalog e RAW in Rust
-├── deploy/                   # Config versionata di CT 144 (systemd, Sunshine, app), install e smoke test
+├── deploy/                   # Config versionata della workstation (systemd, Sunshine, app), install e smoke test
 ├── mcp-server/               # Bridge MCP (FastMCP) + test pytest
 ├── input-relay/              # Mouse/tastiera/touch di Sunshine → Xorg (XTest) + test
 ├── moonlight-web-stream/     # WebRTC gateway client per lo streaming nel browser
@@ -136,6 +136,10 @@ creative_suite/
 ├── MCP_TOOLS_GUIDE.md        # Guida d'uso dei tool MCP per gli agenti AI
 └── STREAMING_ARCHITECTURE.md # Documentazione tecnica dettagliata su Sunshine e Moonlight
 ```
+
+## Impostazioni dell'installazione
+
+Questo repository non contiene indirizzi né nomi di una rete: l'indirizzo e i nomi della workstation e il dominio della suite nel browser stanno in `/etc/creative-suite/site.env` su ogni macchina. [`deploy/site.example.env`](./deploy/site.example.env) li documenta con valori inventati; `deploy/install.sh` e `deploy/web/install.sh` si fermano, prima di modificare qualcosa, se un valore manca.
 
 ## Licenza
 

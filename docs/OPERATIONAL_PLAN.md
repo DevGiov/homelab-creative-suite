@@ -195,7 +195,7 @@ Tutta la configurazione di CT 144 vive in [`deploy/`](../deploy) e si applica da
 8. **Input dello stream** (mouse/tastiera/touch/penna): Sunshine crea dispositivi uinput `libvirtualhid *` che Xorg nel CT non può hot-plugare (niente udev). Catena: host udev → `/dev/input` nel CT → `virtualhid-relay.service` ([`input-relay/relay.py`](../input-relay/relay.py)) → XTest su `:0`. Verifica: `python3 /opt/creative-suite/repo/deploy/input-e2e.py`.
 9. **Configurazione lato host Proxmox** (non gestita da `install.sh`, applicata a mano il 2026-10-13):
    - `/etc/udev/rules.d/99-sunshine-virtualhid.rules` ← [`deploy/host/99-sunshine-virtualhid.rules`](../deploy/host/99-sunshine-virtualhid.rules) (`udevadm control --reload-rules`)
-   - righe di [`deploy/host/ct144-input.conf`](../deploy/host/ct144-input.conf) in coda a `/etc/pve/lxc/144.conf` (backup in `/root/144.conf.bak-20261013-150415`), poi riavvio del CT.
+   - righe di [`deploy/host/lxc-input.conf`](../deploy/host/lxc-input.conf) in coda a `/etc/pve/lxc/144.conf` (backup in `/root/144.conf.bak-20261013-150415`), poi riavvio del CT.
 
 ### Client Moonlight nativo
 1. **Host**: aggiungere manualmente `192.168.1.189` (IP del CT). `creative.deggio.local` punta a NpmLocal e serve solo il client web: non usarlo in Moonlight.

@@ -51,17 +51,18 @@ def test_empty_note_survives_a_round_trip(tmp_path):
 
 
 def test_landing_links_each_app_on_its_own_origin():
-    page = webapps.render_landing([row(), row(app="cadcraft", title="CADCraft", category="CAD", note="Salva spesso")])
-    assert 'href="https://gridcraft.lan.devgiov.com/"' in page
-    assert 'href="https://cadcraft.lan.devgiov.com/"' in page
-    assert 'href="https://creative.lan.devgiov.com/"' in page
+    rows = [row(), row(app="cadcraft", title="CADCraft", category="CAD", note="Salva spesso")]
+    page = webapps.render_landing(rows, "apps.example.com")
+    assert 'href="https://gridcraft.apps.example.com/"' in page
+    assert 'href="https://cadcraft.apps.example.com/"' in page
+    assert 'href="https://creative.apps.example.com/"' in page
     assert "Salva spesso" in page
     assert page.index("<h2>Documenti</h2>") < page.index("<h2>CAD</h2>")
     assert "<h2>Grafica</h2>" not in page
 
 
 def test_landing_escapes_manifest_text():
-    page = webapps.render_landing([row(description="<script>x</script>")])
+    page = webapps.render_landing([row(description="<script>x</script>")], "apps.example.com")
     assert "<script>" not in page
     assert "&lt;script&gt;" in page
 
