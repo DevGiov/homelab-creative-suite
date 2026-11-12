@@ -136,3 +136,7 @@ creative_suite/
 ├── MCP_TOOLS_GUIDE.md        # Guida d'uso dei tool MCP per gli agenti AI
 └── STREAMING_ARCHITECTURE.md # Documentazione tecnica dettagliata su Sunshine e Moonlight
 ```
+
+## Licenza
+
+Copyright 2026 Danilo De Giovanni (DevGiov). Distribuito con licenza [Apache 2.0](LICENSE); vedi anche [NOTICE](NOTICE). La licenza copre i file di questo repository (`deploy/`, `mcp-server/`, `input-relay/`, documentazione): le applicazioni nei submodule sono progetti separati e mantengono ciascuna la propria.

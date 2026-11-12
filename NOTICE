@@ -1,0 +1,14 @@
+Creative Suite
+Copyright 2026 Danilo De Giovanni (DevGiov)
+
+Licensed under the Apache License, Version 2.0. See the LICENSE file.
+
+This notice and the LICENSE file cover the files of this repository: the
+deployment scripts (deploy/), the MCP server (mcp-server/), the input relay
+(input-relay/) and the documentation.
+
+The applications in the other top-level directories are git submodules. They
+are separate projects, are not part of this work and keep their own licenses
+(see the LICENSE files inside each of them; moonlight-web-stream, for example,
+is under the GNU GPL). The same holds for the software that the deployment
+scripts download and install.
